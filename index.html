@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Paper Generator — Login</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div>
+      <h1>Paper Generator</h1>
+      <p>Sign in to continue</p>
+    </div>
+  </header>
+
+  <main>
+    <div class="seal">PAPER<br>GEN</div>
+
+    <div class="error-msg" id="errorMsg">Incorrect username or password.</div>
+
+    <form id="loginForm">
+      <div class="field">
+        <label for="username">Username</label>
+        <input type="text" id="username" autocomplete="username" required>
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="btn btn-primary">Log In</button>
+    </form>
+  </main>
+</div>
+
+<script src="js/auth.js"></script>
+<script>
+  // If already logged in, skip straight to home.
+  if (getCurrentUser()) {
+    window.location.href = "home.html";
+  }
+
+  document.getElementById("loginForm").addEventListener("submit", function(e){
+    e.preventDefault();
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
+    const errorMsg = document.getElementById("errorMsg");
+
+    if (checkLogin(username, password)) {
+      startSession(username);
+      window.location.href = "home.html";
+    } else {
+      errorMsg.classList.add("show");
+    }
+  });
+</script>
+</body>
+</html>
