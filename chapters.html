@@ -102,8 +102,10 @@
       chapterData = window[entry.varName];
       document.getElementById("loadingMsg").style.display = "none";
       showChapterList();
-    }).catch(() => {
-      document.getElementById("loadingMsg").textContent = "Could not load question bank.";
+    }).catch((err) => {
+      const el = document.getElementById("loadingMsg");
+      el.style.display = "block";
+      el.textContent = "Could not load question bank. (" + err.message + ")";
     });
   }
 
