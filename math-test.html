@@ -17,6 +17,7 @@
   }
   .qcard .rendered{ font-size:15px; }
   .preview-actions{ display:flex; gap:10px; margin:16px 0; }
+  @page{ margin: 12mm 15mm; }
   @media print{
     .no-print{ display:none !important; }
     .app{ max-width:none; margin:0; }
@@ -48,6 +49,7 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
   // Sample questions written in LaTeX — this is the format real content will use.
   const sampleQuestions = [
@@ -74,18 +76,21 @@
     katex.render(q.latex, document.getElementById("q" + i), { throwOnError: false, displayMode: false });
   });
 
-  function downloadDoc() {
-    // For Word, embed pure MathML (katex can output this directly) instead of
-    // the HTML/CSS version — Word can convert MathML into native equation
-    // objects when it opens the file. This is the part that needs real testing
-    // in Word/WPS on your phone, since support varies.
+  async function downloadDoc() {
+    // Snapshot each rendered equation as a PNG image (guaranteed to display
+    // correctly everywhere) instead of embedding raw MathML (which just
+    // failed to open reliably in Word/WPS).
     let bodyHtml = "";
-    sampleQuestions.forEach((q, i) => {
-      const mathml = katex.renderToString(q.latex, { throwOnError: false, output: "mathml" });
-      bodyHtml += `<p><b>${i+1}. ${q.label}</b><br>${mathml}</p>`;
-    });
+    for (let i = 0; i < sampleQuestions.length; i++) {
+      const el = document.getElementById("q" + i);
+      const canvas = await html2canvas(el, { scale: 3, backgroundColor: "#ffffff" });
+      const imgData = canvas.toDataURL("image/png");
+      const widthPx = Math.round(canvas.width / 3 * 0.75); // scale down for a reasonable doc size
+      bodyHtml += `<p><b>${i+1}. ${sampleQuestions[i].label}</b><br>
+        <img src="${imgData}" width="${widthPx}"></p>`;
+    }
 
-    const header = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:m='http://schemas.openxmlformats.org/officeDocument/2006/math' xmlns='http://www.w3.org/TR/REC-html40'>
+    const header = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
     <head><meta charset="utf-8"><title>Math Test</title></head>
     <body style="font-family:'Times New Roman',Times,serif; font-size:13px;">`;
     const footer = `</body></html>`;
