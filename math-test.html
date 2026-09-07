@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Math Rendering Test</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<style>
+  .qcard{
+    background:#fff; border:1px solid var(--line); border-radius:8px;
+    padding:16px; margin-bottom:14px; font-family:'Times New Roman',Times,serif;
+  }
+  .qcard .label{
+    font-family:-apple-system,sans-serif; font-size:11px; font-weight:700;
+    color:var(--maroon); text-transform:uppercase; margin-bottom:6px;
+  }
+  .qcard .rendered{ font-size:15px; }
+  .preview-actions{ display:flex; gap:10px; margin:16px 0; }
+  @media print{
+    .no-print{ display:none !important; }
+    .app{ max-width:none; margin:0; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar no-print">
+    <div>
+      <h1>Paper Generator</h1>
+      <p>Math Rendering Test</p>
+    </div>
+  </header>
+
+  <main>
+    <p class="no-print" style="font-size:13px; color:var(--gray);">
+      This page is just for testing — it's not linked from the main app.
+      Three sample questions below, rendered with real math typesetting.
+    </p>
+
+    <div id="questionArea"></div>
+
+    <div class="preview-actions no-print">
+      <button class="btn btn-ghost" onclick="downloadDoc()">⬇ Word (.doc)</button>
+      <button class="btn btn-primary" onclick="window.print()">⬇ PDF (Print)</button>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script>
+  // Sample questions written in LaTeX — this is the format real content will use.
+  const sampleQuestions = [
+    {
+      label: "Matrix Addition",
+      latex: "\\text{Given } A=\\begin{bmatrix}1&2\\\\3&4\\end{bmatrix} \\text{ and } B=\\begin{bmatrix}2&0\\\\1&3\\end{bmatrix}\\text{, find } A+B."
+    },
+    {
+      label: "Laws of Exponents",
+      latex: "\\text{Simplify: } \\dfrac{2^{\\frac{1}{2}}\\cdot 2^{\\frac{1}{2}}}{2^{\\frac{1}{4}}}"
+    },
+    {
+      label: "Radical Form",
+      latex: "\\text{Write in exponential form: } \\sqrt[3]{35}, \\quad \\sqrt[5]{\\dfrac{xy}{z}}, \\quad \\sqrt[2]{-(xyz)^4}"
+    }
+  ];
+
+  const area = document.getElementById("questionArea");
+  sampleQuestions.forEach((q, i) => {
+    const card = document.createElement("div");
+    card.className = "qcard";
+    card.innerHTML = `<div class="label">${i+1}. ${q.label}</div><div class="rendered" id="q${i}"></div>`;
+    area.appendChild(card);
+    katex.render(q.latex, document.getElementById("q" + i), { throwOnError: false, displayMode: false });
+  });
+
+  function downloadDoc() {
+    // For Word, embed pure MathML (katex can output this directly) instead of
+    // the HTML/CSS version — Word can convert MathML into native equation
+    // objects when it opens the file. This is the part that needs real testing
+    // in Word/WPS on your phone, since support varies.
+    let bodyHtml = "";
+    sampleQuestions.forEach((q, i) => {
+      const mathml = katex.renderToString(q.latex, { throwOnError: false, output: "mathml" });
+      bodyHtml += `<p><b>${i+1}. ${q.label}</b><br>${mathml}</p>`;
+    });
+
+    const header = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:m='http://schemas.openxmlformats.org/officeDocument/2006/math' xmlns='http://www.w3.org/TR/REC-html40'>
+    <head><meta charset="utf-8"><title>Math Test</title></head>
+    <body style="font-family:'Times New Roman',Times,serif; font-size:13px;">`;
+    const footer = `</body></html>`;
+    const blob = new Blob(['\ufeff', header, bodyHtml, footer], { type: 'application/msword' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "math_render_test.doc";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+</script>
+</body>
+</html>
