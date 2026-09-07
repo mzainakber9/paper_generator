@@ -45,6 +45,10 @@
         <label for="longMarks">Marks per Long Question</label>
         <input type="number" id="longMarks" step="0.5" min="0" value="8" required>
       </div>
+      <div class="field" style="display:flex; align-items:center; gap:10px;">
+        <input type="checkbox" id="includeKey" style="width:18px; height:18px; accent-color:var(--maroon);">
+        <label for="includeKey" style="margin:0;">Include Answer Key (separate page)</label>
+      </div>
 
       <div style="display:flex; gap:10px;">
         <button type="button" class="btn btn-ghost" onclick="window.location.href='chapters.html'">Back</button>
@@ -72,6 +76,7 @@
     saveSelection("mcqMarks", Number(document.getElementById("mcqMarks").value));
     saveSelection("shortMarks", Number(document.getElementById("shortMarks").value));
     saveSelection("longMarks", Number(document.getElementById("longMarks").value));
+    saveSelection("includeKey", document.getElementById("includeKey").checked);
     window.location.href = "preview.html";
   });
 </script>

@@ -29,6 +29,10 @@
     font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.4px;
     color:var(--ink-soft); margin:18px 0 8px;
   }
+  .exercise-label{
+    font-size:12px; font-weight:700; color:var(--maroon);
+    margin:12px 0 6px; padding-bottom:3px; border-bottom:1.5px solid var(--maroon);
+  }
   .footer-actions{display:flex; gap:10px; margin-top:20px;}
   .view{display:none;}
   .view.active{display:block;}
@@ -99,6 +103,12 @@
       });
     }
   }
+  function escapeHtml(str) {
+    if (str === undefined || str === null) return "";
+    return String(str).replace(/[&<>"']/g, c => ({
+      "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
+    }[c]));
+  }
 
   function getPicks() {
     const raw = sessionStorage.getItem("pgen_picks");
@@ -158,29 +168,35 @@
         const checked = picks.mcq.some(p => p.chId === ch.id && p.idx === i) ? "checked" : "";
         return `<label class="q-row">
           <input type="checkbox" data-type="mcq" data-idx="${i}" ${checked}>
-          <span>${q[0]}<div class="opts">${q[1].map((o,oi)=>`(${letters[oi]}) ${o}`).join(" &nbsp; ")}</div></span>
+          <span>${escapeHtml(q[0])}<div class="opts">${q[1].map((o,oi)=>`(${letters[oi]}) ${escapeHtml(o)}`).join(" &nbsp; ")}</div></span>
         </label>`;
       }).join("");
     }
     if (state.types.includes("short") && ch.short.length) {
       html += `<div class="sec-label">Short Questions</div>`;
-      html += ch.short.map((q, i) => {
-        const checked = picks.short.some(p => p.chId === ch.id && p.idx === i) ? "checked" : "";
-        return `<label class="q-row">
-          <input type="checkbox" data-type="short" data-idx="${i}" ${checked}>
-          <span>${q}</span>
-        </label>`;
-      }).join("");
+      ch.short.forEach((group, exIdx) => {
+        html += `<div class="exercise-label">${escapeHtml(group.exercise)}</div>`;
+        html += group.questions.map((q, qIdx) => {
+          const checked = picks.short.some(p => p.chId === ch.id && p.exIdx === exIdx && p.qIdx === qIdx) ? "checked" : "";
+          return `<label class="q-row">
+            <input type="checkbox" data-type="short" data-exidx="${exIdx}" data-qidx="${qIdx}" ${checked}>
+            <span>${escapeHtml(q.text)}</span>
+          </label>`;
+        }).join("");
+      });
     }
     if (state.types.includes("long") && ch.long.length) {
       html += `<div class="sec-label">Long Questions</div>`;
-      html += ch.long.map((q, i) => {
-        const checked = picks.long.some(p => p.chId === ch.id && p.idx === i) ? "checked" : "";
-        return `<label class="q-row">
-          <input type="checkbox" data-type="long" data-idx="${i}" ${checked}>
-          <span>${q}</span>
-        </label>`;
-      }).join("");
+      ch.long.forEach((group, exIdx) => {
+        html += `<div class="exercise-label">${escapeHtml(group.exercise)}</div>`;
+        html += group.questions.map((q, qIdx) => {
+          const checked = picks.long.some(p => p.chId === ch.id && p.exIdx === exIdx && p.qIdx === qIdx) ? "checked" : "";
+          return `<label class="q-row">
+            <input type="checkbox" data-type="long" data-exidx="${exIdx}" data-qidx="${qIdx}" ${checked}>
+            <span>${escapeHtml(q.text)}</span>
+          </label>`;
+        }).join("");
+      });
     }
     document.getElementById("pickerSections").innerHTML = html;
     document.getElementById("pickerSections").dataset.chId = chId;
@@ -194,23 +210,38 @@
     const ch = chapterData.chapters.find(c => c.id === chId);
     const picks = getPicks();
 
-    ["mcq","short","long"].forEach(type => {
-      picks[type] = picks[type].filter(p => p.chId !== chId); // drop old picks for this chapter
+    // MCQ: flat array, unchanged shape
+    picks.mcq = picks.mcq.filter(p => p.chId !== chId);
+    document.querySelectorAll(`input[data-type="mcq"]`).forEach(box => {
+      if (box.checked) {
+        const idx = Number(box.dataset.idx);
+        const q = ch.mcq[idx];
+        picks.mcq.push({ chId: chId, chName: ch.name, idx: idx, text: q[0], options: q[1], correct: q[2] });
+      }
+    });
+
+    // Short/Long: grouped by exercise
+    ["short", "long"].forEach(type => {
+      picks[type] = picks[type].filter(p => p.chId !== chId);
       document.querySelectorAll(`input[data-type="${type}"]`).forEach(box => {
         if (box.checked) {
-          const idx = Number(box.dataset.idx);
-          const q = ch[type][idx];
+          const exIdx = Number(box.dataset.exidx);
+          const qIdx = Number(box.dataset.qidx);
+          const group = ch[type][exIdx];
+          const q = group.questions[qIdx];
           picks[type].push({
             chId: chId,
             chName: ch.name,
-            idx: idx,
-            text: type === "mcq" ? q[0] : q,
-            options: type === "mcq" ? q[1] : null,
-            correct: type === "mcq" ? q[2] : null
+            exercise: group.exercise,
+            exIdx: exIdx,
+            qIdx: qIdx,
+            text: q.text,
+            answer: q.answer
           });
         }
       });
     });
+
     savePicks(picks);
   }
 

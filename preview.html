@@ -119,6 +119,9 @@
     <div class="section-label no-print">Section B &amp; C — separate sheet</div>
     <div class="paper" id="paperBC"></div>
 
+    <div class="section-label no-print" id="keyLabel" style="display:none;">Answer Key — separate sheet</div>
+    <div class="paper" id="paperKey" style="display:none;"></div>
+
     <div class="preview-actions no-print">
       <button class="btn btn-ghost" onclick="downloadDoc()">⬇ Word (.doc)</button>
       <button class="btn btn-primary" onclick="window.print()">⬇ PDF (Print)</button>
@@ -240,6 +243,43 @@
     }
     document.getElementById("paperBC").innerHTML = htmlBC;
     renderMathIn(document.getElementById("paperBC"));
+
+    if (state.includeKey) {
+      let htmlKey = `<h3>${escapeHtml(state.institution || "Institution Name")}</h3>
+        <div class="meta-line">${escapeHtml(state.subject)} — Class ${escapeHtml(state.class)}</div>
+        <div class="sec-title-centered">Answer Key</div>`;
+
+      if (picks.mcq.length) {
+        htmlKey += `<p class="sec-sub">Section A</p>`;
+        htmlKey += `<ol class="mcqlist">` + picks.mcq.map(q => `
+          <li>(${letters[q.correct]}) ${escapeHtml(q.options[q.correct])}</li>`).join("") + `</ol>`;
+      }
+      if (shortRows.length) {
+        htmlKey += `<p class="sec-sub">Section B</p>`;
+        htmlKey += `<table class="qtable">` + shortRows.map((row, i) => `
+          <tr>
+            <td class="num">(${romans[i] || (i+1)})</td>
+            <td>${escapeHtml(row[0].answer || "—")}</td>
+            <td class="or">${row[1] ? "OR" : ""}</td>
+            <td>${row[1] ? escapeHtml(row[1].answer || "—") : ""}</td>
+          </tr>`).join("") + `</table>`;
+      }
+      if (longRows.length) {
+        htmlKey += `<p class="sec-sub">Section C</p>`;
+        htmlKey += `<table class="qtable">` + longRows.map((row, i) => `
+          <tr>
+            <td class="num">Q.${i+3}</td>
+            <td>${escapeHtml(row[0].answer || "—")}</td>
+            <td class="or">${row[1] ? "OR" : ""}</td>
+            <td>${row[1] ? escapeHtml(row[1].answer || "—") : ""}</td>
+          </tr>`).join("") + `</table>`;
+      }
+
+      document.getElementById("paperKey").innerHTML = htmlKey;
+      document.getElementById("paperKey").style.display = "block";
+      document.getElementById("keyLabel").style.display = "block";
+      renderMathIn(document.getElementById("paperKey"));
+    }
   }
 
   /* ---- Reordering ---- */
@@ -284,15 +324,19 @@
   }
 
   /* ---- Word export (both sheets, with a page break between) ---- */
-  function downloadDoc() {
+  async function downloadDoc() {
     const contentA = document.getElementById("paperA").innerHTML;
     const contentBC = document.getElementById("paperBC").innerHTML;
+    const contentKey = state.includeKey ? document.getElementById("paperKey").innerHTML : "";
     const pageBreak = `<br clear=all style="mso-special-character:line-break;page-break-before:always">`;
     const header = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
     <head><meta charset="utf-8"><title>Paper</title></head>
     <body style="font-family:'Times New Roman',Times,serif; font-size:12.5px;">`;
     const footer = `</body></html>`;
-    const blob = new Blob(['\ufeff', header, contentA, pageBreak, contentBC, footer], { type: 'application/msword' });
+    const parts = ['\ufeff', header, contentA, pageBreak, contentBC];
+    if (contentKey) { parts.push(pageBreak, contentKey); }
+    parts.push(footer);
+    const blob = new Blob(parts, { type: 'application/msword' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
