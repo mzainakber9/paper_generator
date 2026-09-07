@@ -75,6 +75,7 @@
   @page{ margin: 12mm 15mm; }
   @media print{
     .no-print{ display:none !important; }
+    .app{ max-width:none; margin:0; }
     .paper{
       border:none; padding:0; margin:0;
       width:100%;
@@ -184,7 +185,7 @@
       htmlA += `<div class="sec-title-centered">Section A (${mcqTotal})</div>`;
       htmlA += `<p class="sec-sub">Q.1 — Choose the correct option for each question. (${mcqMarks} marks each)</p>`;
       htmlA += `<ol class="mcqlist">` + picks.mcq.map(q => `
-        <li>${escapeHtml(q.text)}
+        <li><strong>${escapeHtml(q.text)}</strong>
           <div class="opts">
             ${q.options.map((o,i)=>`<span>(${letters[i]}) ${escapeHtml(o)}</span>`).join("")}
           </div>
@@ -202,9 +203,9 @@
       htmlBC += `<table class="qtable">` + shortRows.map((row, i) => `
         <tr>
           <td class="num">(${romans[i] || (i+1)})</td>
-          <td>${escapeHtml(row[0].text)}</td>
+          <td><strong>${escapeHtml(row[0].text)}</strong></td>
           <td class="or">${row[1] ? "OR" : ""}</td>
-          <td>${row[1] ? escapeHtml(row[1].text) : ""}</td>
+          <td>${row[1] ? `<strong>${escapeHtml(row[1].text)}</strong>` : ""}</td>
         </tr>`).join("") + `</table>`;
     }
     if (longRows.length) {
@@ -213,9 +214,9 @@
       htmlBC += `<table class="qtable">` + longRows.map((row, i) => `
         <tr>
           <td class="num">Q.${i+3}</td>
-          <td>${escapeHtml(row[0].text)}</td>
+          <td><strong>${escapeHtml(row[0].text)}</strong></td>
           <td class="or">${row[1] ? "OR" : ""}</td>
-          <td>${row[1] ? escapeHtml(row[1].text) : ""}</td>
+          <td>${row[1] ? `<strong>${escapeHtml(row[1].text)}</strong>` : ""}</td>
         </tr>`).join("") + `</table>`;
     }
     if (!shortRows.length && !longRows.length) {
