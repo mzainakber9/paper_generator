@@ -123,8 +123,8 @@
     document.getElementById("loadingMsg").style.display = "none";
     document.getElementById("noDataMsg").style.display = "block";
   } else {
-    loadDataScript(entry.file).then(() => {
-      chapterData = window[entry.varName];
+    loadAllChapters(entry).then((data) => {
+      chapterData = data;
       document.getElementById("loadingMsg").style.display = "none";
       showChapterList();
     }).catch((err) => {
