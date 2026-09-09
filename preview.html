@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Paper Generator — Preview</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<style>
+  .paper{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:20px 14px;
+    font-family:'Times New Roman', Times, serif;
+    color:#111;
+    font-size:12.5px;
+    line-height:1.5;
+    margin-bottom:18px;
+  }
+  .paper h3{ text-align:center; margin:0 0 2px; font-size:16px; }
+  .paper .meta-line{ text-align:center; font-size:11.5px; color:#444; margin-bottom:10px; }
+  .paper .info-row{
+    display:flex; justify-content:space-between;
+    border-top:1.5px solid #111; border-bottom:1.5px solid #111;
+    padding:5px 2px; font-size:11px; font-weight:bold;
+  }
+  .paper .idline{
+    text-align:center; font-size:11.5px; margin:10px 0 14px;
+    border-bottom:1px dotted #999; padding-bottom:14px;
+  }
+  .paper .sec-title-centered{
+    text-align:center; font-weight:bold; font-size:13.5px;
+    text-decoration:underline; margin:16px 0 4px;
+  }
+  .paper .sec-sub{ font-size:11px; font-style:italic; text-align:center; margin:0 0 8px; }
+  .paper ol.mcqlist{ padding-left:18px; margin:0; }
+  .paper ol.mcqlist > li{ margin-bottom:7px; }
+  .paper .opts{
+    display:grid; grid-template-columns:1fr 1fr; gap:2px 8px; margin-top:3px; font-size:11.5px;
+  }
+  .paper table.qtable{ width:100%; border-collapse:collapse; margin-bottom:4px; font-size:11.5px; }
+  .paper table.qtable td{ border:1px solid #999; padding:6px 7px; vertical-align:top; }
+  .paper table.qtable td.num{ width:34px; text-align:center; font-weight:bold; }
+  .paper table.qtable td.or{ width:26px; text-align:center; font-weight:bold; }
+  .paper .q-diagram{ margin-top:5px; text-align:center; }
+  .paper .q-diagram svg{ max-width:100%; height:auto; }
+
+  .section-label{
+    font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.4px;
+    color:var(--ink-soft); margin:18px 0 8px;
+  }
+  .reorder-panel{ margin-bottom:14px; }
+  .reorder-row{
+    display:flex; align-items:center; gap:8px;
+    background:var(--card); border:1.5px solid var(--line); border-radius:10px;
+    padding:9px 10px; margin-bottom:6px; font-size:12.5px;
+  }
+  .reorder-row .idx{ font-weight:700; color:var(--maroon); width:18px; flex-shrink:0; }
+  .reorder-row .text{ flex:1; }
+  .reorder-row .arrows{ display:flex; gap:4px; flex-shrink:0; }
+  .reorder-row button{
+    width:30px; height:30px; border-radius:8px;
+    border:1.5px solid var(--maroon); background:#fff; color:var(--maroon);
+    font-size:14px; font-weight:700;
+  }
+  .reorder-row button:disabled{ opacity:.3; }
+  .toggle-row{
+    display:flex; justify-content:space-between; align-items:center;
+    margin:14px 0 10px;
+  }
+  .toggle-row button{
+    background:none; border:none; color:var(--maroon);
+    font-size:13px; font-weight:700; padding:0;
+  }
+  .preview-actions{ display:flex; gap:10px; margin-top:10px; }
+
+  @page{ margin: 12mm 15mm; }
+  @media print{
+    .no-print{ display:none !important; }
+    .app{ max-width:none; margin:0; }
+    .paper{
+      border:none; padding:0; margin:0;
+      width:100%;
+      page-break-after:always;
+    }
+    .paper:last-of-type{ page-break-after:auto; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar no-print">
+    <div>
+      <h1>Paper Generator</h1>
+      <p>Preview</p>
+    </div>
+    <button class="btn btn-ghost" style="width:auto; padding:8px 14px; font-size:13px;" onclick="logout()">Log Out</button>
+  </header>
+
+  <main>
+
+    <div class="toggle-row no-print">
+      <span class="section-label" style="margin:0;">Reorder Questions</span>
+      <button onclick="toggleReorder()" id="reorderToggleBtn">Show</button>
+    </div>
+    <div id="reorderArea" class="no-print" style="display:none;">
+      <div class="reorder-panel">
+        <div class="section-label">Short Questions (Section B order)</div>
+        <div id="shortReorderList"></div>
+      </div>
+      <div class="reorder-panel">
+        <div class="section-label">Long Questions (Section C order)</div>
+        <div id="longReorderList"></div>
+      </div>
+    </div>
+
+    <div class="section-label no-print">Section A — separate sheet</div>
+    <div class="paper" id="paperA"></div>
+
+    <div class="section-label no-print">Section B &amp; C — separate sheet</div>
+    <div class="paper" id="paperBC"></div>
+
+    <div class="section-label no-print" id="keyLabel" style="display:none;">Answer Key — separate sheet</div>
+    <div class="paper" id="paperKey" style="display:none;"></div>
+
+    <div class="preview-actions no-print">
+      <button class="btn btn-ghost" onclick="downloadDoc()">⬇ Word (.doc)</button>
+      <button class="btn btn-primary" onclick="window.print()">⬇ PDF (Print)</button>
+    </div>
+    <button class="btn btn-ghost no-print" style="margin-top:10px;" onclick="window.location.href='details.html'">Back to Details</button>
+  </main>
+</div>
+
+<script src="js/auth.js"></script>
+<script src="js/app.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script>
+  requireLogin();
+  const state = getSelectionState();
+  const raw = sessionStorage.getItem("pgen_picks");
+  const picks = raw ? JSON.parse(raw) : { mcq: [], short: [], long: [] };
+
+  const letters = ["A","B","C","D"];
+  const romans = ["i","ii","iii","iv","v","vi","vii","viii","ix","x","xi","xii","xiii","xiv","xv","xvi"];
+
+  function renderMathIn(el) {
+    if (window.renderMathInElement) {
+      renderMathInElement(el, {
+        delimiters: [
+          { left: "\\(", right: "\\)", display: false },
+          { left: "\\[", right: "\\]", display: true }
+        ],
+        throwOnError: false
+      });
+    }
+  }
+
+  function pairUp(arr) {
+    const rows = [];
+    for (let i = 0; i < arr.length; i += 2) rows.push([arr[i], arr[i+1] || null]);
+    return rows;
+  }
+
+  function escapeHtml(str) {
+    if (str === undefined || str === null) return "";
+    return String(str).replace(/[&<>"']/g, c => ({
+      "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
+    }[c]));
+  }
+  function truncate(str, n) {
+    return str.length > n ? str.slice(0, n) + "…" : str;
+  }
+
+  function headerBlock(timeLabel, timeValue, marksLabel, marksValue) {
+    return `
+      <h3>${escapeHtml(state.institution || "Institution Name")}</h3>
+      <div class="meta-line">${escapeHtml(state.subject)} — Class ${escapeHtml(state.class)}</div>
+      <div class="info-row">
+        <span>Time Allowed: ${escapeHtml(timeValue || "-")}</span>
+        <span>${marksLabel}: ${marksValue}</span>
+      </div>
+      <div class="idline">
+        Class: ${escapeHtml(state.class)} &nbsp;&nbsp; Subject: ${escapeHtml(state.subject)} &nbsp;&nbsp; Roll No: ______________
+      </div>`;
+  }
+
+  function buildPaper() {
+    const mcqMarks = state.mcqMarks || 0;
+    const shortMarks = state.shortMarks || 0;
+    const longMarks = state.longMarks || 0;
+
+    const shortRows = pairUp(picks.short);
+    const longRows = pairUp(picks.long);
+
+    const mcqTotal = picks.mcq.length * mcqMarks;
+    const shortTotal = shortRows.length * shortMarks;
+    const longTotal = longRows.length * longMarks;
+    const combinedBC = shortTotal + longTotal;
+
+    /* ---- Section A paper ---- */
+    let htmlA = headerBlock("Time Allowed", state.timeA, "Total Marks", mcqTotal);
+    if (picks.mcq.length) {
+      htmlA += `<div class="sec-title-centered">Section A (${mcqTotal})</div>`;
+      htmlA += `<p class="sec-sub">Q.1 — Choose the correct option for each question. (${mcqMarks} marks each)</p>`;
+      htmlA += `<ol class="mcqlist">` + picks.mcq.map(q => `
+        <li><strong>${escapeHtml(q.text)}</strong>
+          <div class="opts">
+            ${q.options.map((o,i)=>`<span>(${letters[i]}) ${escapeHtml(o)}</span>`).join("")}
+          </div>
+        </li>`).join("") + `</ol>`;
+    } else {
+      htmlA += `<p style="text-align:center; color:#888;">No MCQs selected.</p>`;
+    }
+    document.getElementById("paperA").innerHTML = htmlA;
+    renderMathIn(document.getElementById("paperA"));
+
+    /* ---- Section B & C paper ---- */
+    let htmlBC = headerBlock("Time Allowed", state.timeBC, "Total Marks", combinedBC);
+    if (shortRows.length) {
+      htmlBC += `<div class="sec-title-centered">Section B (${shortTotal})</div>`;
+      htmlBC += `<p class="sec-sub">Q.2 — Attempt the following parts. (${shortMarks} marks each)</p>`;
+      htmlBC += `<table class="qtable">` + shortRows.map((row, i) => `
+        <tr>
+          <td class="num">(${romans[i] || (i+1)})</td>
+          <td><strong>${escapeHtml(row[0].text)}</strong>${row[0].diagram ? `<div class="q-diagram">${row[0].diagram}</div>` : ""}</td>
+          <td class="or">${row[1] ? "OR" : ""}</td>
+          <td>${row[1] ? `<strong>${escapeHtml(row[1].text)}</strong>${row[1].diagram ? `<div class="q-diagram">${row[1].diagram}</div>` : ""}` : ""}</td>
+        </tr>`).join("") + `</table>`;
+    }
+    if (longRows.length) {
+      htmlBC += `<div class="sec-title-centered">Section C (${longTotal})</div>`;
+      htmlBC += `<p class="sec-sub">Attempt the following questions. (${longMarks} marks each)</p>`;
+      htmlBC += `<table class="qtable">` + longRows.map((row, i) => `
+        <tr>
+          <td class="num">Q.${i+3}</td>
+          <td><strong>${escapeHtml(row[0].text)}</strong>${row[0].diagram ? `<div class="q-diagram">${row[0].diagram}</div>` : ""}</td>
+          <td class="or">${row[1] ? "OR" : ""}</td>
+          <td>${row[1] ? `<strong>${escapeHtml(row[1].text)}</strong>${row[1].diagram ? `<div class="q-diagram">${row[1].diagram}</div>` : ""}` : ""}</td>
+        </tr>`).join("") + `</table>`;
+    }
+    if (!shortRows.length && !longRows.length) {
+      htmlBC += `<p style="text-align:center; color:#888;">No short/long questions selected.</p>`;
+    }
+    document.getElementById("paperBC").innerHTML = htmlBC;
+    renderMathIn(document.getElementById("paperBC"));
+
+    if (state.includeKey) {
+      let htmlKey = `<h3>${escapeHtml(state.institution || "Institution Name")}</h3>
+        <div class="meta-line">${escapeHtml(state.subject)} — Class ${escapeHtml(state.class)}</div>
+        <div class="sec-title-centered">Answer Key</div>`;
+
+      if (picks.mcq.length) {
+        htmlKey += `<p class="sec-sub">Section A</p>`;
+        htmlKey += `<ol class="mcqlist">` + picks.mcq.map(q => `
+          <li>(${letters[q.correct]}) ${escapeHtml(q.options[q.correct])}</li>`).join("") + `</ol>`;
+      }
+      if (shortRows.length) {
+        htmlKey += `<p class="sec-sub">Section B</p>`;
+        htmlKey += `<table class="qtable">` + shortRows.map((row, i) => `
+          <tr>
+            <td class="num">(${romans[i] || (i+1)})</td>
+            <td>${escapeHtml(row[0].answer || "—")}</td>
+            <td class="or">${row[1] ? "OR" : ""}</td>
+            <td>${row[1] ? escapeHtml(row[1].answer || "—") : ""}</td>
+          </tr>`).join("") + `</table>`;
+      }
+      if (longRows.length) {
+        htmlKey += `<p class="sec-sub">Section C</p>`;
+        htmlKey += `<table class="qtable">` + longRows.map((row, i) => `
+          <tr>
+            <td class="num">Q.${i+3}</td>
+            <td>${escapeHtml(row[0].answer || "—")}</td>
+            <td class="or">${row[1] ? "OR" : ""}</td>
+            <td>${row[1] ? escapeHtml(row[1].answer || "—") : ""}</td>
+          </tr>`).join("") + `</table>`;
+      }
+
+      document.getElementById("paperKey").innerHTML = htmlKey;
+      document.getElementById("paperKey").style.display = "block";
+      document.getElementById("keyLabel").style.display = "block";
+      renderMathIn(document.getElementById("paperKey"));
+    }
+  }
+
+  /* ---- Reordering ---- */
+  function savePicksToSession() {
+    sessionStorage.setItem("pgen_picks", JSON.stringify(picks));
+  }
+  function renderReorderList(type, containerId) {
+    const arr = picks[type];
+    const container = document.getElementById(containerId);
+    if (!arr.length) {
+      container.innerHTML = `<p style="font-size:12px; color:var(--gray);">None selected.</p>`;
+      return;
+    }
+    container.innerHTML = arr.map((q, i) => `
+      <div class="reorder-row">
+        <span class="idx">${i+1}.</span>
+        <span class="text">${escapeHtml(truncate(q.text, 55))}</span>
+        <span class="arrows">
+          <button ${i===0?'disabled':''} onclick="moveQuestion('${type}',${i},-1)">↑</button>
+          <button ${i===arr.length-1?'disabled':''} onclick="moveQuestion('${type}',${i},1)">↓</button>
+        </span>
+      </div>`).join("");
+  }
+  function moveQuestion(type, idx, dir) {
+    const arr = picks[type];
+    const newIdx = idx + dir;
+    if (newIdx < 0 || newIdx >= arr.length) return;
+    const tmp = arr[idx];
+    arr[idx] = arr[newIdx];
+    arr[newIdx] = tmp;
+    savePicksToSession();
+    renderReorderList("short", "shortReorderList");
+    renderReorderList("long", "longReorderList");
+    buildPaper();
+  }
+  function toggleReorder() {
+    const area = document.getElementById("reorderArea");
+    const btn = document.getElementById("reorderToggleBtn");
+    const showing = area.style.display !== "none";
+    area.style.display = showing ? "none" : "block";
+    btn.textContent = showing ? "Show" : "Hide";
+  }
+
+  /* ---- Word export (both sheets, with a page break between) ---- */
+  async function downloadDoc() {
+    const contentA = document.getElementById("paperA").innerHTML;
+    const contentBC = document.getElementById("paperBC").innerHTML;
+    const contentKey = state.includeKey ? document.getElementById("paperKey").innerHTML : "";
+    const pageBreak = `<br clear=all style="mso-special-character:line-break;page-break-before:always">`;
+    const header = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+    <head><meta charset="utf-8"><title>Paper</title></head>
+    <body style="font-family:'Times New Roman',Times,serif; font-size:12.5px;">`;
+    const footer = `</body></html>`;
+    const parts = ['\ufeff', header, contentA, pageBreak, contentBC];
+    if (contentKey) { parts.push(pageBreak, contentKey); }
+    parts.push(footer);
+    const blob = new Blob(parts, { type: 'application/msword' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = (state.class + "_" + state.subject + "_Paper.doc").replace(/\s+/g, "_");
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  renderReorderList("short", "shortReorderList");
+  renderReorderList("long", "longReorderList");
+  buildPaper();
+</script>
+</body>
+</html>
