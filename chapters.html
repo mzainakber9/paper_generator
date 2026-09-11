@@ -35,6 +35,15 @@
     font-size:12px; font-weight:700; color:var(--maroon);
     margin:12px 0 6px; padding-bottom:3px; border-bottom:1.5px solid var(--maroon);
   }
+  .stimulus-box{
+    background:#fdf6ec; border:1.5px dashed var(--gold);
+    border-radius:8px; padding:10px 12px; margin:10px 0 6px;
+    font-size:12.5px; color:var(--ink-soft);
+  }
+  .stimulus-box .stim-label{
+    font-size:10.5px; font-weight:700; text-transform:uppercase;
+    color:var(--gold); margin-bottom:4px;
+  }
   .footer-actions{display:flex; gap:10px; margin-top:20px;}
   .view{display:none;}
   .view.active{display:block;}
@@ -167,12 +176,25 @@
     if (state.types.includes("mcq") && ch.mcq.length) {
       html += `<div class="sec-label">MCQs</div>`;
       html += ch.mcq.map((q, i) => {
-        const checked = picks.mcq.some(p => p.chId === ch.id && p.idx === i) ? "checked" : "";
+        const checked = picks.mcq.some(p => p.chId === ch.id && p.idx === i && p.stimGroup === undefined) ? "checked" : "";
         return `<label class="q-row">
           <input type="checkbox" data-type="mcq" data-idx="${i}" ${checked}>
           <span>${escapeHtml(q[0])}<div class="opts">${q[1].map((o,oi)=>`(${letters[oi]}) ${escapeHtml(o)}`).join(" &nbsp; ")}</div></span>
         </label>`;
       }).join("");
+    }
+    if (state.types.includes("mcq") && ch.mcqStimulus && ch.mcqStimulus.length) {
+      html += `<div class="sec-label">MCQs (Stimulus-Based)</div>`;
+      ch.mcqStimulus.forEach((group, gIdx) => {
+        html += `<div class="stimulus-box"><div class="stim-label">Scenario</div>${escapeHtml(group.stimulus)}</div>`;
+        html += group.questions.map((q, qIdx) => {
+          const checked = picks.mcq.some(p => p.chId === ch.id && p.stimGroup === gIdx && p.idx === qIdx) ? "checked" : "";
+          return `<label class="q-row">
+            <input type="checkbox" data-type="mcqstim" data-gidx="${gIdx}" data-idx="${qIdx}" ${checked}>
+            <span>${escapeHtml(q[0])}<div class="opts">${q[1].map((o,oi)=>`(${letters[oi]}) ${escapeHtml(o)}`).join(" &nbsp; ")}</div></span>
+          </label>`;
+        }).join("");
+      });
     }
     if (state.types.includes("short") && ch.short.length) {
       html += `<div class="sec-label">Short Questions</div>`;
@@ -212,13 +234,25 @@
     const ch = chapterData.chapters.find(c => c.id === chId);
     const picks = getPicks();
 
-    // MCQ: flat array, unchanged shape
+    // MCQ: flat array, unchanged shape (regular + stimulus-based merged together)
     picks.mcq = picks.mcq.filter(p => p.chId !== chId);
     document.querySelectorAll(`input[data-type="mcq"]`).forEach(box => {
       if (box.checked) {
         const idx = Number(box.dataset.idx);
         const q = ch.mcq[idx];
         picks.mcq.push({ chId: chId, chName: ch.name, idx: idx, text: q[0], options: q[1], correct: q[2] });
+      }
+    });
+    document.querySelectorAll(`input[data-type="mcqstim"]`).forEach(box => {
+      if (box.checked) {
+        const gIdx = Number(box.dataset.gidx);
+        const idx = Number(box.dataset.idx);
+        const group = ch.mcqStimulus[gIdx];
+        const q = group.questions[idx];
+        picks.mcq.push({
+          chId: chId, chName: ch.name, idx: idx, stimGroup: gIdx,
+          text: q[0], options: q[1], correct: q[2], stimulus: group.stimulus
+        });
       }
     });
 
