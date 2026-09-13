@@ -33,7 +33,9 @@
     text-align:center; font-weight:bold; font-size:13.5px;
     text-decoration:underline; margin:16px 0 4px;
   }
-  .paper .sec-sub{ font-size:11px; font-style:italic; text-align:center; margin:0 0 8px; }
+  .paper .sec-sub{ font-size:11px; font-style:italic; text-align:left; margin:0 0 8px; }
+  .paper .keylist{ columns:3; -webkit-columns:3; column-gap:16px; font-size:11px; margin:0; }
+  .paper .keylist .key-item{ break-inside:avoid; -webkit-column-break-inside:avoid; margin-bottom:4px; }
   .paper ol.mcqlist{ padding-left:18px; margin:0; }
   .paper ol.mcqlist > li{ margin-bottom:7px; }
   .paper .opts{
@@ -57,7 +59,11 @@
   .paper .stim-label{
     font-size:10px; font-weight:700; text-transform:uppercase;
     font-style:normal; color:#8a7a5c; margin-bottom:3px;
+    display:block;
   }
+  .paper td.stim table{ border-collapse:collapse; margin-top:5px; font-style:normal; width:auto; }
+  .paper td.stim table th, .paper td.stim table td{ border:1px solid #b8935f; padding:3px 8px; }
+  .paper td.stim table th{ background:#f3e6cf; }
   .paper table.qtable{ width:100%; border-collapse:collapse; margin-bottom:4px; font-size:11.5px; }
   .paper table.qtable td{ border:1px solid #999; padding:6px 7px; vertical-align:top; }
   .paper table.qtable td.num{ width:34px; text-align:center; font-weight:bold; }
@@ -134,10 +140,10 @@
       </div>
     </div>
 
-    <div class="section-label no-print">Section A — separate sheet</div>
+    <div class="section-label no-print" id="labelA">Section A — separate sheet</div>
     <div class="paper" id="paperA"></div>
 
-    <div class="section-label no-print">Section B &amp; C — separate sheet</div>
+    <div class="section-label no-print" id="labelBC">Section B &amp; C — separate sheet</div>
     <div class="paper" id="paperBC"></div>
 
     <div class="section-label no-print" id="keyLabel" style="display:none;">Answer Key — separate sheet</div>
@@ -218,9 +224,11 @@
     const longTotal = longRows.length * longMarks;
     const combinedBC = shortTotal + longTotal;
 
-    /* ---- Section A paper ---- */
-    let htmlA = headerBlock("Time Allowed", state.timeA, "Total Marks", mcqTotal);
+    /* ---- Section A paper (skip entirely if no MCQs selected) ---- */
     if (picks.mcq.length) {
+      document.getElementById("labelA").style.display = "";
+      document.getElementById("paperA").style.display = "";
+      let htmlA = headerBlock("Time Allowed", state.timeA, "Total Marks", mcqTotal);
       htmlA += `<div class="sec-title-centered">Section A (${mcqTotal})</div>`;
       htmlA += `<p class="sec-sub">Q.1 — Choose the correct option for each question. (${mcqMarks} marks each)</p>`;
       htmlA += `<table class="mcqtable">
@@ -233,7 +241,7 @@
       let lastStim = undefined;
       picks.mcq.forEach((q, i) => {
         if (q.stimulus !== undefined && q.stimulus !== lastStim) {
-          htmlA += `<tr><td class="stim" colspan="7"><span class="stim-label">Scenario</span> ${escapeHtml(q.stimulus)}</td></tr>`;
+          htmlA += `<tr><td class="stim" colspan="7"><span class="stim-label">Scenario</span>${q.stimulus}</td></tr>`;
         }
         if (q.stimulus === undefined) { lastStim = undefined; } else { lastStim = q.stimulus; }
         htmlA += `<tr>
@@ -246,13 +254,18 @@
         </tr>`;
       });
       htmlA += `</table>`;
+      document.getElementById("paperA").innerHTML = htmlA;
+      renderMathIn(document.getElementById("paperA"));
     } else {
-      htmlA += `<p style="text-align:center; color:#888;">No MCQs selected.</p>`;
+      document.getElementById("labelA").style.display = "none";
+      document.getElementById("paperA").style.display = "none";
+      document.getElementById("paperA").innerHTML = "";
     }
-    document.getElementById("paperA").innerHTML = htmlA;
-    renderMathIn(document.getElementById("paperA"));
 
-    /* ---- Section B & C paper ---- */
+    /* ---- Section B & C paper (skip entirely if nothing selected) ---- */
+    if (shortRows.length || longRows.length) {
+    document.getElementById("labelBC").style.display = "";
+    document.getElementById("paperBC").style.display = "";
     let htmlBC = headerBlock("Time Allowed", state.timeBC, "Total Marks", combinedBC);
     if (shortRows.length) {
       htmlBC += `<div class="sec-title-centered">Section B (${shortTotal})</div>`;
@@ -276,11 +289,13 @@
           <td>${row[1] ? `<strong>${escapeHtml(row[1].text)}</strong>${row[1].diagram ? `<div class="q-diagram">${row[1].diagram}</div>` : ""}` : ""}</td>
         </tr>`).join("") + `</table>`;
     }
-    if (!shortRows.length && !longRows.length) {
-      htmlBC += `<p style="text-align:center; color:#888;">No short/long questions selected.</p>`;
-    }
     document.getElementById("paperBC").innerHTML = htmlBC;
     renderMathIn(document.getElementById("paperBC"));
+    } else {
+      document.getElementById("labelBC").style.display = "none";
+      document.getElementById("paperBC").style.display = "none";
+      document.getElementById("paperBC").innerHTML = "";
+    }
 
     if (state.includeKey) {
       let htmlKey = `<h3>${escapeHtml(state.institution || "Institution Name")}</h3>
@@ -289,8 +304,8 @@
 
       if (picks.mcq.length) {
         htmlKey += `<p class="sec-sub">Section A</p>`;
-        htmlKey += `<ol class="mcqlist">` + picks.mcq.map(q => `
-          <li>(${letters[q.correct]}) ${escapeHtml(q.options[q.correct])}</li>`).join("") + `</ol>`;
+        htmlKey += `<div class="keylist">` + picks.mcq.map((q, i) => `
+          <div class="key-item">${i+1}. (${letters[q.correct]}) ${escapeHtml(q.options[q.correct])}</div>`).join("") + `</div>`;
       }
       if (shortRows.length) {
         htmlKey += `<p class="sec-sub">Section B</p>`;
