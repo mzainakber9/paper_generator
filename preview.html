@@ -39,6 +39,16 @@
   .paper .opts{
     display:grid; grid-template-columns:1fr 1fr; gap:2px 8px; margin-top:3px; font-size:11.5px;
   }
+  .paper table.mcqtable{ width:100%; border-collapse:collapse; margin:6px 0 4px; font-size:11px; }
+  .paper table.mcqtable th, .paper table.mcqtable td{ border:1px solid #999; padding:5px 6px; vertical-align:top; }
+  .paper table.mcqtable th{ background:#f2f2f2; font-weight:700; text-align:center; font-size:10px; text-transform:uppercase; }
+  .paper table.mcqtable td.num{ width:24px; text-align:center; font-weight:bold; }
+  .paper table.mcqtable td.opt{ text-align:left; }
+  .paper table.mcqtable td.stim{ font-style:italic; background:#fdf6ec; }
+  .paper table.mcqtable td.circles{ width:70px; }
+  .paper .circle-row{ display:flex; justify-content:space-between; gap:3px; }
+  .paper .circle-item{ display:flex; flex-direction:column; align-items:center; font-size:8.5px; color:#555; }
+  .paper .circle{ width:11px; height:11px; border:1.3px solid #333; border-radius:50%; margin-bottom:1px; }
   .paper .stimulus-box{
     background:#fdf6ec; border:1.5px dashed #b8935f;
     border-radius:6px; padding:8px 10px; margin:10px 0 6px;
@@ -213,20 +223,29 @@
     if (picks.mcq.length) {
       htmlA += `<div class="sec-title-centered">Section A (${mcqTotal})</div>`;
       htmlA += `<p class="sec-sub">Q.1 — Choose the correct option for each question. (${mcqMarks} marks each)</p>`;
-      htmlA += `<ol class="mcqlist">`;
+      htmlA += `<table class="mcqtable">
+        <colgroup>
+          <col style="width:5%"><col style="width:30%">
+          <col style="width:12%"><col style="width:12%"><col style="width:12%"><col style="width:12%">
+          <col style="width:17%">
+        </colgroup>
+        <tr><th>No.</th><th>Question</th><th>A</th><th>B</th><th>C</th><th>D</th><th>Fill Correct Circle</th></tr>`;
       let lastStim = undefined;
-      picks.mcq.forEach(q => {
+      picks.mcq.forEach((q, i) => {
         if (q.stimulus !== undefined && q.stimulus !== lastStim) {
-          htmlA += `<div class="stimulus-box"><div class="stim-label">Scenario</div>${escapeHtml(q.stimulus)}</div>`;
+          htmlA += `<tr><td class="stim" colspan="7"><span class="stim-label">Scenario</span> ${escapeHtml(q.stimulus)}</td></tr>`;
         }
         if (q.stimulus === undefined) { lastStim = undefined; } else { lastStim = q.stimulus; }
-        htmlA += `<li><strong>${escapeHtml(q.text)}</strong>
-          <div class="opts">
-            ${q.options.map((o,i)=>`<span>(${letters[i]}) ${escapeHtml(o)}</span>`).join("")}
-          </div>
-        </li>`;
+        htmlA += `<tr>
+          <td class="num">${i+1}</td>
+          <td>${escapeHtml(q.text)}${q.diagram ? `<div class="q-diagram">${q.diagram}</div>` : ""}</td>
+          ${q.options.map(o => `<td class="opt">${escapeHtml(o)}</td>`).join("")}
+          <td class="circles"><div class="circle-row">
+            ${letters.map(l => `<span class="circle-item"><span class="circle"></span>${l}</span>`).join("")}
+          </div></td>
+        </tr>`;
       });
-      htmlA += `</ol>`;
+      htmlA += `</table>`;
     } else {
       htmlA += `<p style="text-align:center; color:#888;">No MCQs selected.</p>`;
     }
