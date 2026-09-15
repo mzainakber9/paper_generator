@@ -49,7 +49,8 @@ const CATALOG = {
     "Math": {
       files: [
         { file: "data/class12-math-mcq-ch1-2-3.js", varName: "CLASS12_MATH_MCQ_CH1_2_3" }
-      ]
+        { file: "data/class12-math-mcq-ch4-5.js", varName: "CLASS12_MATH_MCQ_CH4_5" }
+      ]    
     }
   }
 };
