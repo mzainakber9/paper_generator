@@ -50,7 +50,8 @@ const CATALOG = {
       files: [
         { file: "data/class10-math-mcq-ch1-2.js", varName: "CLASS10_MATH_MCQ_CH1_2" },
         { file: "data/class10-math-mcq-ch3-4.js", varName: "CLASS10_MATH_MCQ_CH3_4" },
-        { file: "data/class10-math-mcq-ch5-6.js", varName: "CLASS10_MATH_MCQ_CH5_6" }
+        { file: "data/class10-math-mcq-ch5-6.js", varName: "CLASS10_MATH_MCQ_CH5_6" },
+        { file: "data/class10-math-mcq-ch7-8.js", varName: "CLASS10_MATH_MCQ_CH7_8" }
       ]
     }
   },
