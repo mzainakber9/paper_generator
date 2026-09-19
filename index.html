@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
 <title>Paper Generator — Login</title>
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/colors-and-styles.css">
 </head>
 <body>
 <div class="app">
@@ -34,11 +34,11 @@
   </main>
 </div>
 
-<script src="js/auth.js"></script>
+<script src="js/login-check.js"></script>
 <script>
   // If already logged in, skip straight to home.
   if (getCurrentUser()) {
-    window.location.href = "home.html";
+    window.location.href = "class-subject.html";
   }
 
   document.getElementById("loginForm").addEventListener("submit", function(e){
@@ -49,7 +49,7 @@
 
     if (checkLogin(username, password)) {
       startSession(username);
-      window.location.href = "home.html";
+      window.location.href = "class-subject.html";
     } else {
       errorMsg.classList.add("show");
     }
