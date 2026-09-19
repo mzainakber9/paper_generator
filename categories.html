@@ -73,6 +73,9 @@
     if (chkShort.checked) types.push("short");
     if (chkLong.checked) types.push("long");
     saveSelection("types", types);
+    // Fresh run through the type sequence each time categories are (re)confirmed
+    saveSelection("doneTypes", []);
+    saveSelection("activeType", types.length === 1 ? types[0] : null);
     window.location.href = "chapters.html";
   }
 </script>

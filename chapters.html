@@ -47,6 +47,20 @@
   .footer-actions{display:flex; gap:10px; margin-top:20px;}
   .view{display:none;}
   .view.active{display:block;}
+  .type-card{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:16px; margin-bottom:10px;
+    background:var(--card); border:1.5px solid var(--line); border-radius:12px;
+  }
+  .type-card .name{font-weight:600; font-size:14px;}
+  .type-card .sub{font-size:11.5px; color:var(--gray); margin-top:2px;}
+  .type-card .badge{
+    font-size:11px; padding:3px 9px; border-radius:20px; white-space:nowrap;
+  }
+  .type-card .badge.done{background:#2e7d46; color:#fff;}
+  .type-card .badge.pending{background:var(--gold); color:#fff;}
+  .type-card .badge.empty{background:var(--line); color:var(--ink-soft);}
+  .hint-msg{font-size:12px; color:var(--gray); margin:10px 0 0;}
 </style>
 </head>
 <body>
@@ -65,13 +79,26 @@
       No question bank has been added yet for this class/subject.
     </div>
 
-    <!-- VIEW: chapter list -->
-    <div class="view" id="chapterListView">
-      <h2 style="font-size:17px; margin:0 0 12px;">Select a Chapter</h2>
-      <div id="chapterList"></div>
+    <!-- VIEW: type selector (only shown when 2+ categories were chosen) -->
+    <div class="view" id="typeSelectView">
+      <h2 style="font-size:17px; margin:0 0 4px;">Which section do you want to build first?</h2>
+      <p style="font-size:12px; color:var(--gray); margin:0 0 14px;">Finish one section at a time. You can come back and add more to a finished section anytime before generating.</p>
+      <div id="typeList"></div>
       <div class="footer-actions">
         <button class="btn btn-ghost" onclick="window.location.href='categories.html'">Back</button>
+        <button class="btn btn-primary" id="generateBtnMulti" onclick="goToPreview()">Generate Paper</button>
+      </div>
+      <p class="hint-msg" id="generateHint"></p>
+    </div>
+
+    <!-- VIEW: chapter list -->
+    <div class="view" id="chapterListView">
+      <h2 style="font-size:17px; margin:0 0 12px;" id="chapterListTitle">Select a Chapter</h2>
+      <div id="chapterList"></div>
+      <div class="footer-actions">
+        <button class="btn btn-ghost" id="chapterBackBtn" onclick="window.location.href='categories.html'">Back</button>
         <button class="btn btn-primary" id="generateBtn" onclick="goToPreview()">Generate Paper</button>
+        <button class="btn btn-primary" id="finishTypeBtn" style="display:none;" onclick="finishType()">Finish &amp; Choose Next</button>
       </div>
     </div>
 
@@ -102,6 +129,14 @@
 
   const letters = ["A","B","C","D"];
   let chapterData = null;
+
+  const TYPE_LABELS = { mcq: "Multiple Choice Questions", short: "Short Questions", long: "Long Questions" };
+  const multiMode = state.types.length > 1;
+  function getDoneTypes() { return state.doneTypes || []; }
+  function setActiveType(t) {
+    state.activeType = t;
+    saveSelection("activeType", t);
+  }
 
   function renderMathIn(el) {
     if (window.renderMathInElement) {
@@ -137,7 +172,12 @@
     loadAllChapters(entry).then((data) => {
       chapterData = data;
       document.getElementById("loadingMsg").style.display = "none";
-      showChapterList();
+      if (multiMode) {
+        showTypeSelect();
+      } else {
+        setActiveType(state.types[0]);
+        showChapterList();
+      }
     }).catch((err) => {
       const el = document.getElementById("loadingMsg");
       el.style.display = "block";
@@ -150,20 +190,79 @@
     document.getElementById(id).classList.add("active");
   }
 
+  function showTypeSelect() {
+    const picks = getPicks();
+    const done = getDoneTypes();
+    const list = document.getElementById("typeList");
+    list.innerHTML = state.types.map(t => {
+      const count = picks[t].length;
+      const isDone = done.includes(t);
+      const badge = isDone
+        ? `<span class="badge done">✓ Done${count ? " · " + count + " picked" : ""}</span>`
+        : count
+          ? `<span class="badge pending">${count} picked</span>`
+          : `<span class="badge empty">Not started</span>`;
+      return `<div class="type-card" onclick="selectType('${t}')">
+        <div><div class="name">${TYPE_LABELS[t]}</div><div class="sub">Tap to build this section</div></div>
+        ${badge}
+      </div>`;
+    }).join("");
+
+    const allDone = state.types.every(t => done.includes(t));
+    const genBtn = document.getElementById("generateBtnMulti");
+    genBtn.disabled = !allDone;
+    document.getElementById("generateHint").textContent = allDone
+      ? ""
+      : "Finish every section above (Finish & Choose Next) to unlock Generate Paper.";
+    setView("typeSelectView");
+  }
+
+  function selectType(t) {
+    setActiveType(t);
+    showChapterList();
+  }
+
+  function finishType() {
+    if (document.getElementById("pickerView").classList.contains("active")) {
+      collectPickerSelections();
+    }
+    const done = getDoneTypes();
+    if (!done.includes(state.activeType)) {
+      done.push(state.activeType);
+      state.doneTypes = done;
+      saveSelection("doneTypes", done);
+    }
+    showTypeSelect();
+  }
+
   function showChapterList() {
     const picks = getPicks();
+    const t = state.activeType;
     const list = document.getElementById("chapterList");
     list.innerHTML = chapterData.chapters.map(ch => {
-      const count = ["mcq","short","long"].reduce((sum, t) =>
-        sum + picks[t].filter(p => p.chId === ch.id).length, 0);
+      const count = picks[t].filter(p => p.chId === ch.id).length;
       return `<div class="chapter-card" onclick="openChapter(${ch.id})">
         <span class="name">Ch. ${ch.id} — ${ch.name}</span>
         ${count > 0 ? `<span class="count">${count} picked</span>` : ""}
       </div>`;
     }).join("");
 
-    const totalPicked = ["mcq","short","long"].reduce((s,t)=>s+picks[t].length,0);
-    document.getElementById("generateBtn").disabled = totalPicked === 0;
+    document.getElementById("chapterListTitle").textContent =
+      multiMode ? "Select a Chapter — " + TYPE_LABELS[t] : "Select a Chapter";
+
+    if (multiMode) {
+      document.getElementById("generateBtn").style.display = "none";
+      document.getElementById("finishTypeBtn").style.display = "";
+      document.getElementById("chapterBackBtn").textContent = "Back to Sections";
+      document.getElementById("chapterBackBtn").onclick = function() { showTypeSelect(); };
+    } else {
+      const totalPicked = ["mcq","short","long"].reduce((s,tt)=>s+picks[tt].length,0);
+      document.getElementById("generateBtn").disabled = totalPicked === 0;
+      document.getElementById("generateBtn").style.display = "";
+      document.getElementById("finishTypeBtn").style.display = "none";
+      document.getElementById("chapterBackBtn").textContent = "Back";
+      document.getElementById("chapterBackBtn").onclick = function() { window.location.href = "categories.html"; };
+    }
     setView("chapterListView");
   }
 
@@ -172,8 +271,9 @@
     const picks = getPicks();
     document.getElementById("pickerChapterName").textContent = "Ch. " + ch.id + " — " + ch.name;
 
+    const t = state.activeType;
     let html = "";
-    if (state.types.includes("mcq") && ch.mcq.length) {
+    if (t === "mcq" && ch.mcq.length) {
       html += `<div class="sec-label">MCQs</div>`;
       html += ch.mcq.map((q, i) => {
         const checked = picks.mcq.some(p => p.chId === ch.id && p.idx === i && p.stimGroup === undefined) ? "checked" : "";
@@ -183,7 +283,7 @@
         </label>`;
       }).join("");
     }
-    if (state.types.includes("mcq") && ch.mcqStimulus && ch.mcqStimulus.length) {
+    if (t === "mcq" && ch.mcqStimulus && ch.mcqStimulus.length) {
       html += `<div class="sec-label">MCQs (Stimulus-Based)</div>`;
       ch.mcqStimulus.forEach((group, gIdx) => {
         html += `<div class="stimulus-box"><div class="stim-label">Scenario</div>${escapeHtml(group.stimulus)}</div>`;
@@ -196,7 +296,7 @@
         }).join("");
       });
     }
-    if (state.types.includes("short") && ch.short.length) {
+    if (t === "short" && ch.short.length) {
       html += `<div class="sec-label">Short Questions</div>`;
       ch.short.forEach((group, exIdx) => {
         html += `<div class="exercise-label">${escapeHtml(group.exercise)}</div>`;
@@ -209,7 +309,7 @@
         }).join("");
       });
     }
-    if (state.types.includes("long") && ch.long.length) {
+    if (t === "long" && ch.long.length) {
       html += `<div class="sec-label">Long Questions</div>`;
       ch.long.forEach((group, exIdx) => {
         html += `<div class="exercise-label">${escapeHtml(group.exercise)}</div>`;
@@ -228,36 +328,44 @@
     setView("pickerView");
   }
 
-  // Save picks whenever leaving the picker view
+  // Save picks whenever leaving the picker view.
+  // Only touches the arrays for the type actually rendered in the picker
+  // (state.activeType) -- otherwise switching to a different section
+  // in multi-type mode would wipe out picks already saved for other
+  // sections in this same chapter.
   function collectPickerSelections() {
     const chId = Number(document.getElementById("pickerSections").dataset.chId);
     const ch = chapterData.chapters.find(c => c.id === chId);
     const picks = getPicks();
+    const t = state.activeType;
 
-    // MCQ: flat array, unchanged shape (regular + stimulus-based merged together)
-    picks.mcq = picks.mcq.filter(p => p.chId !== chId);
-    document.querySelectorAll(`input[data-type="mcq"]`).forEach(box => {
-      if (box.checked) {
-        const idx = Number(box.dataset.idx);
-        const q = ch.mcq[idx];
-        picks.mcq.push({ chId: chId, chName: ch.name, idx: idx, text: q[0], options: q[1], correct: q[2] });
-      }
-    });
-    document.querySelectorAll(`input[data-type="mcqstim"]`).forEach(box => {
-      if (box.checked) {
-        const gIdx = Number(box.dataset.gidx);
-        const idx = Number(box.dataset.idx);
-        const group = ch.mcqStimulus[gIdx];
-        const q = group.questions[idx];
-        picks.mcq.push({
-          chId: chId, chName: ch.name, idx: idx, stimGroup: gIdx,
-          text: q[0], options: q[1], correct: q[2], stimulus: group.stimulus
-        });
-      }
-    });
+    if (t === "mcq") {
+      // MCQ: flat array, unchanged shape (regular + stimulus-based merged together)
+      picks.mcq = picks.mcq.filter(p => p.chId !== chId);
+      document.querySelectorAll(`input[data-type="mcq"]`).forEach(box => {
+        if (box.checked) {
+          const idx = Number(box.dataset.idx);
+          const q = ch.mcq[idx];
+          picks.mcq.push({ chId: chId, chName: ch.name, idx: idx, text: q[0], options: q[1], correct: q[2] });
+        }
+      });
+      document.querySelectorAll(`input[data-type="mcqstim"]`).forEach(box => {
+        if (box.checked) {
+          const gIdx = Number(box.dataset.gidx);
+          const idx = Number(box.dataset.idx);
+          const group = ch.mcqStimulus[gIdx];
+          const q = group.questions[idx];
+          picks.mcq.push({
+            chId: chId, chName: ch.name, idx: idx, stimGroup: gIdx,
+            text: q[0], options: q[1], correct: q[2], stimulus: group.stimulus
+          });
+        }
+      });
+    }
 
     // Short/Long: grouped by exercise
     ["short", "long"].forEach(type => {
+      if (t !== type) return;
       picks[type] = picks[type].filter(p => p.chId !== chId);
       document.querySelectorAll(`input[data-type="${type}"]`).forEach(box => {
         if (box.checked) {
