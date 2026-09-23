@@ -7,7 +7,7 @@
   here you wouldn't be okay with a curious student seeing.
 */
 const ACCOUNTS = {
-  "zain": "changeme123"
+  "zain": "5678"
 };
 
 /* Checks a username/password pair against ACCOUNTS above. */
