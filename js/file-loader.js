@@ -42,7 +42,12 @@ const CATALOG = {
         { file: "data/math/class11/class11-math-mcq-ch3-4.js", varName: "CLASS11_MATH_MCQ_CH3_4" },
         { file: "data/math/class11/class11-math-mcq-ch5-6.js", varName: "CLASS11_MATH_MCQ_CH5_6" },
         { file: "data/math/class11/class11-math-mcq-ch7-8.js", varName: "CLASS11_MATH_MCQ_CH7_8" },
-        { file: "data/math/class11/class11-math-mcq-ch9.js", varName: "CLASS11_MATH_MCQ_CH9" }
+        { file: "data/math/class11/class11-math-mcq-ch9.js", varName: "CLASS11_MATH_MCQ_CH9" },
+        { file: "data/math/class11/class11-math-ch1-2.js", varName: "CLASS11_MATH_CH1_2" },
+        { file: "data/math/class11/class11-math-ch3-4.js", varName: "CLASS11_MATH_CH3_4" },
+        { file: "data/math/class11/class11-math-ch5-6.js", varName: "CLASS11_MATH_CH5_6" },
+        { file: "data/math/class11/class11-math-ch7-8.js", varName: "CLASS11_MATH_CH7_8" },
+        { file: "data/math/class11/class11-math-ch9.js", varName: "CLASS11_MATH_CH9" }
       ]
     }
   },

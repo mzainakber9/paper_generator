@@ -29,20 +29,53 @@ function getSubjectsForClass(cls) {
   SELECTION STATE
   ---------------
   Carries the user's choices (class, subject, question types, picked
-  questions, etc.) from page to page during one session. Cleared when
-  the browser/tab closes, and reset whenever a new paper is started.
+  questions, etc.) from page to page. Stored in localStorage (not
+  sessionStorage) so it survives logging out and logging back in, and
+  even closing the browser entirely -- it only goes away when the user
+  explicitly starts a new paper (see startNewPaper() below).
 */
 function saveSelection(key, value) {
   const state = getSelectionState();
   state[key] = value;
-  sessionStorage.setItem("pgen_selection", JSON.stringify(state));
+  localStorage.setItem("pgen_selection", JSON.stringify(state));
 }
 
 function getSelectionState() {
-  const raw = sessionStorage.getItem("pgen_selection");
+  const raw = localStorage.getItem("pgen_selection");
   return raw ? JSON.parse(raw) : {};
 }
 
 function clearSelectionState() {
-  sessionStorage.removeItem("pgen_selection");
+  localStorage.removeItem("pgen_selection");
+}
+
+/*
+  QUESTION PICKS
+  --------------
+  The actual questions ticked by the user, per type. Also stored in
+  localStorage for the same reason as the selection state above.
+*/
+function getPicks() {
+  const raw = localStorage.getItem("pgen_picks");
+  return raw ? JSON.parse(raw) : { mcq: [], short: [], long: [] };
+}
+
+function savePicks(picks) {
+  localStorage.setItem("pgen_picks", JSON.stringify(picks));
+}
+
+function clearPicks() {
+  localStorage.removeItem("pgen_picks");
+}
+
+/* Wipes the in-progress paper (selection + picks) and sends the user
+   back to the start of a fresh paper. Bound to the "Start New Paper"
+   button that appears throughout the app. */
+function startNewPaper() {
+  if (!confirm("Start a new paper? This clears the class/subject, question picks, and details you've entered so far.")) {
+    return;
+  }
+  clearSelectionState();
+  clearPicks();
+  window.location.href = "class-subject.html";
 }
