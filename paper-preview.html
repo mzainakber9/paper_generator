@@ -34,8 +34,12 @@
     padding:5px 2px; font-size:11px; font-weight:bold;
   }
   .paper .idline{
+    position:relative;
     text-align:center; font-size:11.5px; margin:10px 0 14px;
     border-bottom:1px dotted #999; padding-bottom:14px;
+  }
+  .paper .idline .mcq-code{
+    position:absolute; right:0; top:0; font-weight:bold;
   }
   .paper .sec-title-centered{
     text-align:center; font-weight:bold; font-size:13.5px;
@@ -128,7 +132,10 @@
       <h1>Paper Generator</h1>
       <p>Preview</p>
     </div>
-    <button class="btn btn-ghost" style="width:auto; padding:8px 14px; font-size:13px;" onclick="logout()">Log Out</button>
+    <div style="display:flex; gap:6px;" class="no-print">
+      <button class="btn btn-ghost" style="width:auto; padding:8px 12px; font-size:12px;" onclick="startNewPaper()">Start New</button>
+      <button class="btn btn-ghost" style="width:auto; padding:8px 12px; font-size:12px;" onclick="logout()">Log Out</button>
+    </div>
   </header>
 
   <main>
@@ -138,6 +145,10 @@
       <button onclick="toggleReorder()" id="reorderToggleBtn">Show</button>
     </div>
     <div id="reorderArea" class="no-print" style="display:none;">
+      <div class="reorder-panel">
+        <div class="section-label">MCQs (Section A order)</div>
+        <div id="mcqReorderList"></div>
+      </div>
       <div class="reorder-panel">
         <div class="section-label">Short Questions (Section B order)</div>
         <div id="shortReorderList"></div>
@@ -172,8 +183,7 @@
 <script>
   requireLogin();
   const state = getSelectionState();
-  const raw = sessionStorage.getItem("pgen_picks");
-  const picks = raw ? JSON.parse(raw) : { mcq: [], short: [], long: [] };
+  const picks = getPicks();
 
   const letters = ["A","B","C","D"];
   const romans = ["i","ii","iii","iv","v","vi","vii","viii","ix","x","xi","xii","xiii","xiv","xv","xvi"];
@@ -206,7 +216,7 @@
     return str.length > n ? str.slice(0, n) + "…" : str;
   }
 
-  function headerBlock(timeLabel, timeValue, marksLabel, marksValue) {
+  function headerBlock(timeLabel, timeValue, marksLabel, marksValue, showMcqCode) {
     const nameBlock = `<h3>${escapeHtml(state.institution || "Institution Name")}</h3>`;
     const titleHtml = state.logoDataUrl
       ? `<div class="header-top">
@@ -214,15 +224,18 @@
            <div class="header-top-name">${nameBlock}</div>
          </div>`
       : nameBlock;
+    const sectionSuffix = state.section ? ` (Section ${escapeHtml(state.section)})` : "";
+    const idlineLeft = `Class: ${escapeHtml(state.class)} &nbsp;&nbsp; Subject: ${escapeHtml(state.subject)} &nbsp;&nbsp; Roll No: ______________`;
+    const idlineRight = (showMcqCode && state.mcqCode) ? `<span class="mcq-code">Code: ${escapeHtml(state.mcqCode)}</span>` : "";
     return `
       ${titleHtml}
-      <div class="meta-line">${escapeHtml(state.subject)} — Class ${escapeHtml(state.class)}</div>
+      <div class="meta-line">${escapeHtml(state.subject)}-Class${escapeHtml(state.class)}${sectionSuffix}</div>
       <div class="info-row">
         <span>Time Allowed: ${escapeHtml(timeValue || "-")}</span>
         <span>${marksLabel}: ${marksValue}</span>
       </div>
       <div class="idline">
-        Class: ${escapeHtml(state.class)} &nbsp;&nbsp; Subject: ${escapeHtml(state.subject)} &nbsp;&nbsp; Roll No: ______________
+        <span>${idlineLeft}</span>${idlineRight}
       </div>`;
   }
 
@@ -243,7 +256,7 @@
     if (picks.mcq.length) {
       document.getElementById("labelA").style.display = "";
       document.getElementById("paperA").style.display = "";
-      let htmlA = headerBlock("Time Allowed", state.timeA, "Total Marks", mcqTotal);
+      let htmlA = headerBlock("Time Allowed", state.timeA, "Total Marks", mcqTotal, true);
       htmlA += `<div class="sec-title-centered">Section A (${mcqTotal})</div>`;
       htmlA += `<p class="sec-sub">Q.1 — Choose the correct option for each question. (${mcqMarks} marks each)</p>`;
       htmlA += `<table class="mcqtable">
@@ -352,7 +365,7 @@
 
   /* ---- Reordering ---- */
   function savePicksToSession() {
-    sessionStorage.setItem("pgen_picks", JSON.stringify(picks));
+    savePicks(picks);
   }
   function renderReorderList(type, containerId) {
     const arr = picks[type];
@@ -379,6 +392,7 @@
     arr[idx] = arr[newIdx];
     arr[newIdx] = tmp;
     savePicksToSession();
+    renderReorderList("mcq", "mcqReorderList");
     renderReorderList("short", "shortReorderList");
     renderReorderList("long", "longReorderList");
     buildPaper();
@@ -415,6 +429,7 @@
     URL.revokeObjectURL(url);
   }
 
+  renderReorderList("mcq", "mcqReorderList");
   renderReorderList("short", "shortReorderList");
   renderReorderList("long", "longReorderList");
   buildPaper();
