@@ -57,7 +57,15 @@ function clearSelectionState() {
 */
 function getPicks() {
   const raw = localStorage.getItem("pgen_picks");
-  return raw ? JSON.parse(raw) : { mcq: [], short: [], long: [] };
+  const picks = raw ? JSON.parse(raw) : { mcq: [], short: [], long: [] };
+  // Upgrade any older flat picks ({text, answer, diagram}) to the stem/parts format.
+  ["short", "long"].forEach(type => {
+    picks[type] = (picks[type] || []).map(p => p.parts ? p : Object.assign({}, p, {
+      stem: null,
+      parts: [{ partIdx: 0, label: null, text: p.text, answer: p.answer, diagram: p.diagram || null }]
+    }));
+  });
+  return picks;
 }
 
 function savePicks(picks) {
