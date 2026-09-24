@@ -34,12 +34,8 @@
     padding:5px 2px; font-size:11px; font-weight:bold;
   }
   .paper .idline{
-    position:relative;
     text-align:center; font-size:11.5px; margin:10px 0 14px;
     border-bottom:1px dotted #999; padding-bottom:14px;
-  }
-  .paper .idline .mcq-code{
-    position:absolute; right:0; top:0; font-weight:bold;
   }
   .paper .sec-title-centered{
     text-align:center; font-weight:bold; font-size:13.5px;
@@ -132,10 +128,7 @@
       <h1>Paper Generator</h1>
       <p>Preview</p>
     </div>
-    <div style="display:flex; gap:6px;" class="no-print">
-      <button class="btn btn-ghost" style="width:auto; padding:8px 12px; font-size:12px;" onclick="startNewPaper()">Start New</button>
-      <button class="btn btn-ghost" style="width:auto; padding:8px 12px; font-size:12px;" onclick="logout()">Log Out</button>
-    </div>
+    <button class="btn btn-ghost" style="width:auto; padding:8px 14px; font-size:13px;" onclick="logout()">Log Out</button>
   </header>
 
   <main>
@@ -145,10 +138,6 @@
       <button onclick="toggleReorder()" id="reorderToggleBtn">Show</button>
     </div>
     <div id="reorderArea" class="no-print" style="display:none;">
-      <div class="reorder-panel">
-        <div class="section-label">MCQs (Section A order)</div>
-        <div id="mcqReorderList"></div>
-      </div>
       <div class="reorder-panel">
         <div class="section-label">Short Questions (Section B order)</div>
         <div id="shortReorderList"></div>
@@ -183,7 +172,8 @@
 <script>
   requireLogin();
   const state = getSelectionState();
-  const picks = getPicks();
+  const raw = sessionStorage.getItem("pgen_picks");
+  const picks = raw ? JSON.parse(raw) : { mcq: [], short: [], long: [] };
 
   const letters = ["A","B","C","D"];
   const romans = ["i","ii","iii","iv","v","vi","vii","viii","ix","x","xi","xii","xiii","xiv","xv","xvi"];
@@ -216,7 +206,39 @@
     return str.length > n ? str.slice(0, n) + "…" : str;
   }
 
-  function headerBlock(timeLabel, timeValue, marksLabel, marksValue, showMcqCode) {
+  // A short/long pick now looks like { stem, parts: [{label, text, answer, diagram}, ...] } --
+  // parts is only the sub-parts the user actually checked in the picker. These render the
+  // question cell and the answer-key cell for one pick, whether it's a single plain question
+  // or a stem with several selected lettered/numbered parts underneath it.
+  function renderPickedQuestion(q) {
+    if (!q) return "";
+    let html = "";
+    if (q.stem) html += `<div style="margin-bottom:4px;">${escapeHtml(q.stem)}</div>`;
+    if (q.parts.length === 1 && !q.parts[0].label) {
+      const part = q.parts[0];
+      html += `<strong>${escapeHtml(part.text)}</strong>`;
+      if (part.diagram) html += `<div class="q-diagram">${part.diagram}</div>`;
+    } else {
+      html += q.parts.map(part => `<div style="margin-bottom:3px;"><strong>${part.label ? escapeHtml(part.label) + " " : ""}</strong>${escapeHtml(part.text)}${part.diagram ? `<div class="q-diagram">${part.diagram}</div>` : ""}</div>`).join("");
+    }
+    return html;
+  }
+  function renderPickedAnswer(q) {
+    if (!q) return "";
+    if (q.parts.length === 1 && !q.parts[0].label) {
+      return escapeHtml(q.parts[0].answer || "—");
+    }
+    return q.parts.map(part => `<div style="margin-bottom:3px;">${part.label ? escapeHtml(part.label) + " " : ""}${escapeHtml(part.answer || "—")}</div>`).join("");
+  }
+  function summaryText(q) {
+    if (q.stem) return q.stem;
+    if (q.parts && q.parts.length) {
+      return q.parts[0].text + (q.parts.length > 1 ? ` (+${q.parts.length - 1} more part${q.parts.length > 2 ? "s" : ""})` : "");
+    }
+    return "";
+  }
+
+  function headerBlock(timeLabel, timeValue, marksLabel, marksValue) {
     const nameBlock = `<h3>${escapeHtml(state.institution || "Institution Name")}</h3>`;
     const titleHtml = state.logoDataUrl
       ? `<div class="header-top">
@@ -224,18 +246,15 @@
            <div class="header-top-name">${nameBlock}</div>
          </div>`
       : nameBlock;
-    const sectionSuffix = state.section ? ` (Section ${escapeHtml(state.section)})` : "";
-    const idlineLeft = `Class: ${escapeHtml(state.class)} &nbsp;&nbsp; Subject: ${escapeHtml(state.subject)} &nbsp;&nbsp; Roll No: ______________`;
-    const idlineRight = (showMcqCode && state.mcqCode) ? `<span class="mcq-code">Code: ${escapeHtml(state.mcqCode)}</span>` : "";
     return `
       ${titleHtml}
-      <div class="meta-line">${escapeHtml(state.subject)}-Class${escapeHtml(state.class)}${sectionSuffix}</div>
+      <div class="meta-line">${escapeHtml(state.subject)} — Class ${escapeHtml(state.class)}</div>
       <div class="info-row">
         <span>Time Allowed: ${escapeHtml(timeValue || "-")}</span>
         <span>${marksLabel}: ${marksValue}</span>
       </div>
       <div class="idline">
-        <span>${idlineLeft}</span>${idlineRight}
+        Class: ${escapeHtml(state.class)} &nbsp;&nbsp; Subject: ${escapeHtml(state.subject)} &nbsp;&nbsp; Roll No: ______________
       </div>`;
   }
 
@@ -256,7 +275,7 @@
     if (picks.mcq.length) {
       document.getElementById("labelA").style.display = "";
       document.getElementById("paperA").style.display = "";
-      let htmlA = headerBlock("Time Allowed", state.timeA, "Total Marks", mcqTotal, true);
+      let htmlA = headerBlock("Time Allowed", state.timeA, "Total Marks", mcqTotal);
       htmlA += `<div class="sec-title-centered">Section A (${mcqTotal})</div>`;
       htmlA += `<p class="sec-sub">Q.1 — Choose the correct option for each question. (${mcqMarks} marks each)</p>`;
       htmlA += `<table class="mcqtable">
@@ -301,9 +320,9 @@
       htmlBC += `<table class="qtable">` + shortRows.map((row, i) => `
         <tr>
           <td class="num">(${romans[i] || (i+1)})</td>
-          <td><strong>${escapeHtml(row[0].text)}</strong>${row[0].diagram ? `<div class="q-diagram">${row[0].diagram}</div>` : ""}</td>
+          <td>${renderPickedQuestion(row[0])}</td>
           <td class="or">${row[1] ? "OR" : ""}</td>
-          <td>${row[1] ? `<strong>${escapeHtml(row[1].text)}</strong>${row[1].diagram ? `<div class="q-diagram">${row[1].diagram}</div>` : ""}` : ""}</td>
+          <td>${row[1] ? renderPickedQuestion(row[1]) : ""}</td>
         </tr>`).join("") + `</table>`;
     }
     if (longRows.length) {
@@ -312,9 +331,9 @@
       htmlBC += `<table class="qtable">` + longRows.map((row, i) => `
         <tr>
           <td class="num">Q.${i+3}</td>
-          <td><strong>${escapeHtml(row[0].text)}</strong>${row[0].diagram ? `<div class="q-diagram">${row[0].diagram}</div>` : ""}</td>
+          <td>${renderPickedQuestion(row[0])}</td>
           <td class="or">${row[1] ? "OR" : ""}</td>
-          <td>${row[1] ? `<strong>${escapeHtml(row[1].text)}</strong>${row[1].diagram ? `<div class="q-diagram">${row[1].diagram}</div>` : ""}` : ""}</td>
+          <td>${row[1] ? renderPickedQuestion(row[1]) : ""}</td>
         </tr>`).join("") + `</table>`;
     }
     document.getElementById("paperBC").innerHTML = htmlBC;
@@ -340,9 +359,9 @@
         htmlKey += `<table class="qtable">` + shortRows.map((row, i) => `
           <tr>
             <td class="num">(${romans[i] || (i+1)})</td>
-            <td>${escapeHtml(row[0].answer || "—")}</td>
+            <td>${renderPickedAnswer(row[0])}</td>
             <td class="or">${row[1] ? "OR" : ""}</td>
-            <td>${row[1] ? escapeHtml(row[1].answer || "—") : ""}</td>
+            <td>${row[1] ? renderPickedAnswer(row[1]) : ""}</td>
           </tr>`).join("") + `</table>`;
       }
       if (longRows.length) {
@@ -350,9 +369,9 @@
         htmlKey += `<table class="qtable">` + longRows.map((row, i) => `
           <tr>
             <td class="num">Q.${i+3}</td>
-            <td>${escapeHtml(row[0].answer || "—")}</td>
+            <td>${renderPickedAnswer(row[0])}</td>
             <td class="or">${row[1] ? "OR" : ""}</td>
-            <td>${row[1] ? escapeHtml(row[1].answer || "—") : ""}</td>
+            <td>${row[1] ? renderPickedAnswer(row[1]) : ""}</td>
           </tr>`).join("") + `</table>`;
       }
 
@@ -365,7 +384,7 @@
 
   /* ---- Reordering ---- */
   function savePicksToSession() {
-    savePicks(picks);
+    sessionStorage.setItem("pgen_picks", JSON.stringify(picks));
   }
   function renderReorderList(type, containerId) {
     const arr = picks[type];
@@ -377,7 +396,7 @@
     container.innerHTML = arr.map((q, i) => `
       <div class="reorder-row">
         <span class="idx">${i+1}.</span>
-        <span class="text">${escapeHtml(truncate(q.text, 55))}</span>
+        <span class="text">${escapeHtml(truncate(summaryText(q), 55))}</span>
         <span class="arrows">
           <button ${i===0?'disabled':''} onclick="moveQuestion('${type}',${i},-1)">↑</button>
           <button ${i===arr.length-1?'disabled':''} onclick="moveQuestion('${type}',${i},1)">↓</button>
@@ -392,7 +411,6 @@
     arr[idx] = arr[newIdx];
     arr[newIdx] = tmp;
     savePicksToSession();
-    renderReorderList("mcq", "mcqReorderList");
     renderReorderList("short", "shortReorderList");
     renderReorderList("long", "longReorderList");
     buildPaper();
@@ -429,7 +447,6 @@
     URL.revokeObjectURL(url);
   }
 
-  renderReorderList("mcq", "mcqReorderList");
   renderReorderList("short", "shortReorderList");
   renderReorderList("long", "longReorderList");
   buildPaper();

@@ -27,6 +27,12 @@
   .q-row .opts{font-size:12px; color:var(--gray); margin-top:4px;}
   .q-diagram{ margin-top:6px; }
   .q-diagram svg{ max-width:100%; height:auto; display:block; }
+  .q-block{ margin-bottom:8px; }
+  .q-stem{
+    font-size:13px; font-weight:600; color:var(--ink); margin:6px 0 4px; padding:0 2px;
+  }
+  .part-row{ margin-left:16px; margin-bottom:6px; }
+  .part-row .part-label{ font-weight:700; color:var(--maroon); margin-right:4px; }
   .sec-label{
     font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.4px;
     color:var(--ink-soft); margin:18px 0 8px;
@@ -70,10 +76,7 @@
       <h1>Paper Generator</h1>
       <p id="recapMsg">Class · Subject</p>
     </div>
-    <div style="display:flex; gap:6px;">
-      <button class="btn btn-ghost" style="width:auto; padding:8px 12px; font-size:12px;" onclick="startNewPaper()">Start New</button>
-      <button class="btn btn-ghost" style="width:auto; padding:8px 12px; font-size:12px;" onclick="logout()">Log Out</button>
-    </div>
+    <button class="btn btn-ghost" style="width:auto; padding:8px 14px; font-size:13px;" onclick="logout()">Log Out</button>
   </header>
 
   <main>
@@ -159,8 +162,13 @@
     }[c]));
   }
 
-  // getPicks() / savePicks() now come from subjects-and-session.js
-  // (localStorage-backed, so picks survive logout/login and browser restarts).
+  function getPicks() {
+    const raw = sessionStorage.getItem("pgen_picks");
+    return raw ? JSON.parse(raw) : { mcq: [], short: [], long: [] };
+  }
+  function savePicks(p) {
+    sessionStorage.setItem("pgen_picks", JSON.stringify(p));
+  }
 
   const entry = getCatalogEntry(state.class, state.subject);
   if (!entry) {
@@ -264,6 +272,38 @@
     setView("chapterListView");
   }
 
+  // A question in short/long now looks like { stem, parts: [{label, text, answer, diagram}, ...] }.
+  // A saved pick for that question carries only the SELECTED parts (with partIdx kept so we
+  // can tell which checkboxes were on when the picker re-opens).
+  function isPartPicked(picks, type, chId, exIdx, qIdx, partIdx) {
+    const g = picks[type].find(p => p.chId === chId && p.exIdx === exIdx && p.qIdx === qIdx);
+    if (!g) return false;
+    return g.parts.some(pp => pp.partIdx === partIdx);
+  }
+
+  function renderQuestionBlock(type, chId, exIdx, qIdx, q, picks) {
+    const stemHtml = q.stem ? `<div class="q-stem">${escapeHtml(q.stem)}</div>` : "";
+    // Single, unlabeled part -> render as one plain checkbox row (no nested part list).
+    if (q.parts.length === 1 && !q.parts[0].label) {
+      const part = q.parts[0];
+      const checked = isPartPicked(picks, type, chId, exIdx, qIdx, 0) ? "checked" : "";
+      return `<div class="q-block">${stemHtml}<label class="q-row">
+        <input type="checkbox" data-type="${type}" data-exidx="${exIdx}" data-qidx="${qIdx}" data-partidx="0" ${checked}>
+        <span>${escapeHtml(part.text)}${part.diagram ? `<div class="q-diagram">${part.diagram}</div>` : ""}</span>
+      </label></div>`;
+    }
+    // Multiple selectable parts under a shared stem.
+    const partsHtml = q.parts.map((part, pIdx) => {
+      const checked = isPartPicked(picks, type, chId, exIdx, qIdx, pIdx) ? "checked" : "";
+      const labelHtml = part.label ? `<span class="part-label">${escapeHtml(part.label)}</span>` : "";
+      return `<label class="q-row part-row">
+        <input type="checkbox" data-type="${type}" data-exidx="${exIdx}" data-qidx="${qIdx}" data-partidx="${pIdx}" ${checked}>
+        <span>${labelHtml}${escapeHtml(part.text)}${part.diagram ? `<div class="q-diagram">${part.diagram}</div>` : ""}</span>
+      </label>`;
+    }).join("");
+    return `<div class="q-block">${stemHtml}${partsHtml}</div>`;
+  }
+
   function openChapter(chId) {
     const ch = chapterData.chapters.find(c => c.id === chId);
     const picks = getPicks();
@@ -298,26 +338,14 @@
       html += `<div class="sec-label">Short Questions</div>`;
       ch.short.forEach((group, exIdx) => {
         html += `<div class="exercise-label">${escapeHtml(group.exercise)}</div>`;
-        html += group.questions.map((q, qIdx) => {
-          const checked = picks.short.some(p => p.chId === ch.id && p.exIdx === exIdx && p.qIdx === qIdx) ? "checked" : "";
-          return `<label class="q-row">
-            <input type="checkbox" data-type="short" data-exidx="${exIdx}" data-qidx="${qIdx}" ${checked}>
-            <span>${escapeHtml(q.text)}${q.diagram ? `<div class="q-diagram">${q.diagram}</div>` : ""}</span>
-          </label>`;
-        }).join("");
+        html += group.questions.map((q, qIdx) => renderQuestionBlock("short", ch.id, exIdx, qIdx, q, picks)).join("");
       });
     }
     if (t === "long" && ch.long.length) {
       html += `<div class="sec-label">Long Questions</div>`;
       ch.long.forEach((group, exIdx) => {
         html += `<div class="exercise-label">${escapeHtml(group.exercise)}</div>`;
-        html += group.questions.map((q, qIdx) => {
-          const checked = picks.long.some(p => p.chId === ch.id && p.exIdx === exIdx && p.qIdx === qIdx) ? "checked" : "";
-          return `<label class="q-row">
-            <input type="checkbox" data-type="long" data-exidx="${exIdx}" data-qidx="${qIdx}" ${checked}>
-            <span>${escapeHtml(q.text)}${q.diagram ? `<div class="q-diagram">${q.diagram}</div>` : ""}</span>
-          </label>`;
-        }).join("");
+        html += group.questions.map((q, qIdx) => renderQuestionBlock("long", ch.id, exIdx, qIdx, q, picks)).join("");
       });
     }
     document.getElementById("pickerSections").innerHTML = html;
@@ -361,27 +389,41 @@
       });
     }
 
-    // Short/Long: grouped by exercise
+    // Short/Long: a "pick" is one parent question (exIdx,qIdx) carrying only the
+    // parts the user actually checked. Selecting 1 of 3 parts keeps just that part;
+    // selecting all 3 keeps all 3 -- either way it's still one exam-question slot.
     ["short", "long"].forEach(type => {
       if (t !== type) return;
       picks[type] = picks[type].filter(p => p.chId !== chId);
+      const groups = {};
       document.querySelectorAll(`input[data-type="${type}"]`).forEach(box => {
-        if (box.checked) {
-          const exIdx = Number(box.dataset.exidx);
-          const qIdx = Number(box.dataset.qidx);
-          const group = ch[type][exIdx];
-          const q = group.questions[qIdx];
-          picks[type].push({
-            chId: chId,
-            chName: ch.name,
-            exercise: group.exercise,
-            exIdx: exIdx,
-            qIdx: qIdx,
-            text: q.text,
-            answer: q.answer,
-            diagram: q.diagram || null
-          });
-        }
+        if (!box.checked) return;
+        const exIdx = Number(box.dataset.exidx);
+        const qIdx = Number(box.dataset.qidx);
+        const partIdx = Number(box.dataset.partidx);
+        const key = exIdx + "_" + qIdx;
+        if (!groups[key]) groups[key] = { exIdx, qIdx, partIdxs: [] };
+        groups[key].partIdxs.push(partIdx);
+      });
+      Object.values(groups).forEach(g => {
+        const group = ch[type][g.exIdx];
+        const q = group.questions[g.qIdx];
+        const selectedParts = g.partIdxs.sort((a, b) => a - b).map(pi => ({
+          partIdx: pi,
+          label: q.parts[pi].label || null,
+          text: q.parts[pi].text,
+          answer: q.parts[pi].answer,
+          diagram: q.parts[pi].diagram || null
+        }));
+        picks[type].push({
+          chId: chId,
+          chName: ch.name,
+          exercise: group.exercise,
+          exIdx: g.exIdx,
+          qIdx: g.qIdx,
+          stem: q.stem || null,
+          parts: selectedParts
+        });
       });
     });
 
