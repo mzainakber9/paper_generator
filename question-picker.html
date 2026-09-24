@@ -76,7 +76,10 @@
       <h1>Paper Generator</h1>
       <p id="recapMsg">Class · Subject</p>
     </div>
-    <button class="btn btn-ghost" style="width:auto; padding:8px 14px; font-size:13px;" onclick="logout()">Log Out</button>
+    <div style="display:flex; gap:6px;">
+      <button class="btn btn-ghost" style="width:auto; padding:8px 12px; font-size:12px;" onclick="startNewPaper()">Start New</button>
+      <button class="btn btn-ghost" style="width:auto; padding:8px 12px; font-size:12px;" onclick="logout()">Log Out</button>
+    </div>
   </header>
 
   <main>
@@ -162,13 +165,8 @@
     }[c]));
   }
 
-  function getPicks() {
-    const raw = sessionStorage.getItem("pgen_picks");
-    return raw ? JSON.parse(raw) : { mcq: [], short: [], long: [] };
-  }
-  function savePicks(p) {
-    sessionStorage.setItem("pgen_picks", JSON.stringify(p));
-  }
+  // getPicks() / savePicks() come from subjects-and-session.js
+  // (localStorage-backed, so picks survive logout/login and browser restarts).
 
   const entry = getCatalogEntry(state.class, state.subject);
   if (!entry) {
