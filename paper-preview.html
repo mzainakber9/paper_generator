@@ -220,25 +220,30 @@
   // parts is only the sub-parts the user actually checked in the picker. These render the
   // question cell and the answer-key cell for one pick, whether it's a single plain question
   // or a stem with several selected lettered/numbered parts underneath it.
+  // Part numbering rule: a single selected part never shows a part label
+  // (regardless of what label it had in the source data). Two or more
+  // selected parts DO show labels, but renumbered i, ii, iii... in the
+  // order they were picked -- never the original label from the data
+  // (e.g. picking only part (v) and (ix) prints them as (i) and (ii)).
   function renderPickedQuestion(q) {
     if (!q) return "";
     let html = "";
     if (q.stem) html += `<div style="margin-bottom:4px;">${escapeHtml(q.stem)}</div>`;
-    if (q.parts.length === 1 && !q.parts[0].label) {
+    if (q.parts.length === 1) {
       const part = q.parts[0];
       html += `<strong>${escapeHtml(part.text)}</strong>`;
       if (part.diagram) html += `<div class="q-diagram">${part.diagram}</div>`;
     } else {
-      html += q.parts.map(part => `<div style="margin-bottom:3px;"><strong>${part.label ? escapeHtml(part.label) + " " : ""}</strong>${escapeHtml(part.text)}${part.diagram ? `<div class="q-diagram">${part.diagram}</div>` : ""}</div>`).join("");
+      html += q.parts.map((part, i) => `<div style="margin-bottom:3px;"><strong>(${romans[i] || (i+1)}) </strong>${escapeHtml(part.text)}${part.diagram ? `<div class="q-diagram">${part.diagram}</div>` : ""}</div>`).join("");
     }
     return html;
   }
   function renderPickedAnswer(q) {
     if (!q) return "";
-    if (q.parts.length === 1 && !q.parts[0].label) {
+    if (q.parts.length === 1) {
       return escapeHtml(q.parts[0].answer || "—");
     }
-    return q.parts.map(part => `<div style="margin-bottom:3px;">${part.label ? escapeHtml(part.label) + " " : ""}${escapeHtml(part.answer || "—")}</div>`).join("");
+    return q.parts.map((part, i) => `<div style="margin-bottom:3px;">(${romans[i] || (i+1)}) ${escapeHtml(part.answer || "—")}</div>`).join("");
   }
   function summaryText(q) {
     if (q.text) return q.text;
