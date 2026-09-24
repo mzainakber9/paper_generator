@@ -92,6 +92,26 @@ function loadDataScript(path) {
   });
 }
 
+/* Short/long questions are expected everywhere else in the app (picker +
+   preview) to look like: { stem?, parts: [{label, text, answer, diagram}, ...] }.
+   Some data files (older ones, e.g. class 9) instead store each question flat:
+   { text, answer, diagram? } with no parts array at all.
+   normalizeQuestion() accepts either shape and always returns the parts-based
+   one, so the rest of the app never has to know which shape a file used. */
+function normalizeQuestion(q) {
+  if (q.parts) return q; // already in the expected shape -- leave untouched
+  return {
+    stem: q.stem || null,
+    parts: [{ label: null, text: q.text, answer: q.answer, diagram: q.diagram || null }]
+  };
+}
+function normalizeGroups(groups) {
+  return (groups || []).map(group => ({
+    exercise: group.exercise,
+    questions: (group.questions || []).map(normalizeQuestion)
+  }));
+}
+
 /* Loads every file listed for a catalog entry and merges chapters by id
    across files (so a chapter's mcq/short/long can be split across
    multiple files — e.g. short questions in one file, long questions in
@@ -103,20 +123,22 @@ async function loadAllChapters(entry) {
     const data = window[f.varName];
     if (data && data.chapters) {
       data.chapters.forEach(ch => {
+        const normShort = normalizeGroups(ch.short);
+        const normLong = normalizeGroups(ch.long);
         if (chapterMap.has(ch.id)) {
           const existing = chapterMap.get(ch.id);
           existing.mcq = existing.mcq.concat(ch.mcq || []);
           existing.mcqStimulus = existing.mcqStimulus.concat(ch.mcqStimulus || []);
-          existing.short = existing.short.concat(ch.short || []);
-          existing.long = existing.long.concat(ch.long || []);
+          existing.short = existing.short.concat(normShort);
+          existing.long = existing.long.concat(normLong);
         } else {
           chapterMap.set(ch.id, {
             id: ch.id,
             name: ch.name,
             mcq: (ch.mcq || []).slice(),
             mcqStimulus: (ch.mcqStimulus || []).slice(),
-            short: (ch.short || []).slice(),
-            long: (ch.long || []).slice()
+            short: normShort,
+            long: normLong
           });
         }
       });
