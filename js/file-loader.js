@@ -67,7 +67,9 @@ const CATALOG = {
     "Math": {
       files: [
         { file: "data/math/class12/class12-math-mcq-ch1-2-3.js", varName: "CLASS12_MATH_MCQ_CH1_2_3" },
+        { file: "data/math/class12/class12-math-ch1-2.js", varName: "CLASS12_MATH_CH1_2" },
         { file: "data/math/class12/class12-math-mcq-ch4-5.js", varName: "CLASS12_MATH_MCQ_CH4_5" },
+        { file: "data/math/class12/class12-math-ch3-4.js", varName: "CLASS12_MATH_CH3_4" },
         { file: "data/math/class12/class12-math-mcq-ch6-7.js", varName: "CLASS12_MATH_MCQ_CH6_7" },
         { file: "data/math/class12/class12-math-mcq-ch8-9-10.js", varName: "CLASS12_MATH_MCQ_CH8_9_10" }
       ]
