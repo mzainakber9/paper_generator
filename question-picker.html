@@ -126,6 +126,7 @@
 <script src="js/login-check.js"></script>
 <script src="js/subjects-and-session.js"></script>
 <script src="js/file-loader.js"></script>
+<script src="js/question-format.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
 <script>
@@ -280,14 +281,14 @@
   }
 
   function renderQuestionBlock(type, chId, exIdx, qIdx, q, picks) {
-    const stemHtml = q.stem ? `<div class="q-stem">${escapeHtml(q.stem)}</div>` : "";
+    const stemHtml = q.stem ? `<div class="q-stem">${renderQText(q.stem)}</div>` : "";
     // Single, unlabeled part -> render as one plain checkbox row (no nested part list).
     if (q.parts.length === 1 && !q.parts[0].label) {
       const part = q.parts[0];
       const checked = isPartPicked(picks, type, chId, exIdx, qIdx, 0) ? "checked" : "";
       return `<div class="q-block">${stemHtml}<label class="q-row">
         <input type="checkbox" data-type="${type}" data-exidx="${exIdx}" data-qidx="${qIdx}" data-partidx="0" ${checked}>
-        <span>${escapeHtml(part.text)}${part.diagram ? `<div class="q-diagram">${part.diagram}</div>` : ""}</span>
+        <span>${renderQText(part.text)}${part.diagram ? `<div class="q-diagram">${part.diagram}</div>` : ""}</span>
       </label></div>`;
     }
     // Multiple selectable parts under a shared stem.
@@ -296,7 +297,7 @@
       const labelHtml = part.label ? `<span class="part-label">${escapeHtml(part.label)}</span>` : "";
       return `<label class="q-row part-row">
         <input type="checkbox" data-type="${type}" data-exidx="${exIdx}" data-qidx="${qIdx}" data-partidx="${pIdx}" ${checked}>
-        <span>${labelHtml}${escapeHtml(part.text)}${part.diagram ? `<div class="q-diagram">${part.diagram}</div>` : ""}</span>
+        <span>${labelHtml}${renderQText(part.text)}${part.diagram ? `<div class="q-diagram">${part.diagram}</div>` : ""}</span>
       </label>`;
     }).join("");
     return `<div class="q-block">${stemHtml}${partsHtml}</div>`;
@@ -315,19 +316,19 @@
         const checked = picks.mcq.some(p => p.chId === ch.id && p.idx === i && p.stimGroup === undefined) ? "checked" : "";
         return `<label class="q-row">
           <input type="checkbox" data-type="mcq" data-idx="${i}" ${checked}>
-          <span>${escapeHtml(q[0])}<div class="opts">${q[1].map((o,oi)=>`(${letters[oi]}) ${escapeHtml(o)}`).join(" &nbsp; ")}</div></span>
+          <span><div>${renderQText(q[0])}</div><div class="opts">${q[1].map((o,oi)=>`(${letters[oi]}) ${escapeHtml(o)}`).join(" &nbsp; ")}</div></span>
         </label>`;
       }).join("");
     }
     if (t === "mcq" && ch.mcqStimulus && ch.mcqStimulus.length) {
       html += `<div class="sec-label">MCQs (Stimulus-Based)</div>`;
       ch.mcqStimulus.forEach((group, gIdx) => {
-        html += `<div class="stimulus-box"><div class="stim-label">Scenario</div>${escapeHtml(group.stimulus)}</div>`;
+        html += `<div class="stimulus-box"><div class="stim-label">Scenario</div>${group.stimulus}</div>`;
         html += group.questions.map((q, qIdx) => {
           const checked = picks.mcq.some(p => p.chId === ch.id && p.stimGroup === gIdx && p.idx === qIdx) ? "checked" : "";
           return `<label class="q-row">
             <input type="checkbox" data-type="mcqstim" data-gidx="${gIdx}" data-idx="${qIdx}" ${checked}>
-            <span>${escapeHtml(q[0])}<div class="opts">${q[1].map((o,oi)=>`(${letters[oi]}) ${escapeHtml(o)}`).join(" &nbsp; ")}</div></span>
+            <span><div>${renderQText(q[0])}</div><div class="opts">${q[1].map((o,oi)=>`(${letters[oi]}) ${escapeHtml(o)}`).join(" &nbsp; ")}</div></span>
           </label>`;
         }).join("");
       });

@@ -113,8 +113,10 @@
   .preview-actions{ display:flex; gap:10px; margin-top:10px; }
 
   @page{ margin: 12mm 15mm; }
+  .paper .qdata{ font-size:10.5px; }
   @media print{
     .no-print{ display:none !important; }
+    .qdata-wrap{ overflow:visible !important; }
     .app{ max-width:none; margin:0; }
     .paper{
       border:none; padding:0; margin:0;
@@ -178,6 +180,7 @@
 
 <script src="js/login-check.js"></script>
 <script src="js/subjects-and-session.js"></script>
+<script src="js/question-format.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
 <script>
@@ -228,13 +231,13 @@
   function renderPickedQuestion(q) {
     if (!q) return "";
     let html = "";
-    if (q.stem) html += `<div style="margin-bottom:4px;">${escapeHtml(q.stem)}</div>`;
+    if (q.stem) html += `<div style="margin-bottom:4px;">${renderQText(q.stem)}</div>`;
     if (q.parts.length === 1) {
       const part = q.parts[0];
-      html += `<strong>${escapeHtml(part.text)}</strong>`;
+      html += `<div style="font-weight:bold;">${renderQText(part.text)}</div>`;
       if (part.diagram) html += `<div class="q-diagram">${part.diagram}</div>`;
     } else {
-      html += q.parts.map((part, i) => `<div style="margin-bottom:3px;"><strong>(${romans[i] || (i+1)}) </strong>${escapeHtml(part.text)}${part.diagram ? `<div class="q-diagram">${part.diagram}</div>` : ""}</div>`).join("");
+      html += q.parts.map((part, i) => `<div style="margin-bottom:3px;"><strong>(${romans[i] || (i+1)}) </strong>${renderQText(part.text)}${part.diagram ? `<div class="q-diagram">${part.diagram}</div>` : ""}</div>`).join("");
     }
     return html;
   }
@@ -312,7 +315,7 @@
         if (q.stimulus === undefined) { lastStim = undefined; } else { lastStim = q.stimulus; }
         htmlA += `<tr>
           <td class="num">${i+1}</td>
-          <td>${escapeHtml(q.text)}${q.diagram ? `<div class="q-diagram">${q.diagram}</div>` : ""}</td>
+          <td>${renderQText(q.text)}${q.diagram ? `<div class="q-diagram">${q.diagram}</div>` : ""}</td>
           ${q.options.map(o => `<td class="opt">${escapeHtml(o)}</td>`).join("")}
           <td class="circles"><div class="circle-row">
             ${letters.map(l => `<span class="circle-item"><span class="circle"></span>${l}</span>`).join("")}

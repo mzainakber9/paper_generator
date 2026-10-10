@@ -44,7 +44,7 @@
         <label for="mcqCode">MCQ Code (optional, 4 digits)</label>
         <input type="text" id="mcqCode" placeholder="e.g. 1042" inputmode="numeric" pattern="[0-9]{4}" maxlength="4">
       </div>
-      <div class="field">
+      <div class="field" id="timeAField">
         <label for="timeA">Time Allowed — Section A</label>
         <input type="text" id="timeA" placeholder="e.g. 20 minutes" required>
       </div>
@@ -87,6 +87,14 @@
   }
   document.getElementById("recapMsg").textContent = "Class " + state.class + " · " + state.subject;
 
+  // Section A (MCQs) only exists in the paper if at least one MCQ was actually picked.
+  // No MCQs picked (or the MCQ category was never chosen) -> no Section A, so don't ask for its time.
+  const hasMcqs = getPicks().mcq.length > 0;
+  if (!hasMcqs) {
+    document.getElementById("timeAField").style.display = "none";
+    document.getElementById("timeA").required = false;
+  }
+
   // Logo is optional. If the user picks a file we convert it to a data URL
   // and carry it in session state; if they never pick one, logoDataUrl stays
   // null and the paper header renders exactly as it always has.
@@ -119,7 +127,7 @@
     saveSelection("logoDataUrl", logoDataUrl);
     saveSelection("section", document.getElementById("section").value.trim());
     saveSelection("mcqCode", document.getElementById("mcqCode").value.trim());
-    saveSelection("timeA", document.getElementById("timeA").value.trim());
+    saveSelection("timeA", hasMcqs ? document.getElementById("timeA").value.trim() : "");
     saveSelection("timeBC", document.getElementById("timeBC").value.trim());
     saveSelection("mcqMarks", Number(document.getElementById("mcqMarks").value));
     saveSelection("shortMarks", Number(document.getElementById("shortMarks").value));
