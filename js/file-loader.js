@@ -49,6 +49,13 @@ const CATALOG = {
         { file: "data/math/class11/class11-math-ch7-8.js", varName: "CLASS11_MATH_CH7_8" },
         { file: "data/math/class11/class11-math-ch9.js", varName: "CLASS11_MATH_CH9" }
       ]
+    },
+    "Physics": {
+      files: [
+        { file: "data/physics/class11/class11-physics-mcq-ch1-2.js", varName: "CLASS11_PHYSICS_MCQ_CH1_2" },
+        { file: "data/physics/class11/class11-physics-mcq-ch3.js", varName: "CLASS11_PHYSICS_MCQ_CH3" },
+        { file: "data/physics/class11/class11-physics-mcq-ch5.js", varName: "CLASS11_PHYSICS_MCQ_CH5" }
+      ]
     }
   },
   10: {
@@ -59,7 +66,13 @@ const CATALOG = {
         { file: "data/math/class10/class10-math-mcq-ch5-6.js", varName: "CLASS10_MATH_MCQ_CH5_6" },
         { file: "data/math/class10/class10-math-mcq-ch7-8.js", varName: "CLASS10_MATH_MCQ_CH7_8" },
         { file: "data/math/class10/class10-math-mcq-ch9-10.js", varName: "CLASS10_MATH_MCQ_CH9_10" },
-        { file: "data/math/class10/class10-math-mcq-ch11-12.js", varName: "CLASS10_MATH_MCQ_CH11_12" }
+        { file: "data/math/class10/class10-math-mcq-ch11-12.js", varName: "CLASS10_MATH_MCQ_CH11_12" },
+        { file: "data/math/class10/class10-math-ch1-2.js", varName: "CLASS10_MATH_CH1_2" },
+        { file: "data/math/class10/class10-math-ch3-4.js", varName: "CLASS10_MATH_CH3_4" },
+        { file: "data/math/class10/class10-math-ch5-6.js", varName: "CLASS10_MATH_CH5_6" },
+        { file: "data/math/class10/class10-math-ch7-8.js", varName: "CLASS10_MATH_CH7_8" },
+        { file: "data/math/class10/class10-math-ch9-10.js", varName: "CLASS10_MATH_CH9_10" },
+        { file: "data/math/class10/class10-math-ch11-12.js", varName: "CLASS10_MATH_CH11_12" }
       ]
     }
   },
